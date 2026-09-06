@@ -99,6 +99,7 @@ func _cast_camera_path(
 ) -> float:
 	var end: Vector3 = hand + rotation * Vector3(0.0, 0.0, distance)
 	var exclusions: Array[RID] = _get_collision_exclusions()
+	var minimum_distance: float = maxf(avoid_obstacles.minimum_distance_from_target, 0.05)
 	if avoid_obstacles.camera_radius <= 0.0:
 		var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(hand, end)
 		query.collision_mask = avoid_obstacles.collision_mask
@@ -109,17 +110,17 @@ func _cast_camera_path(
 			exclusions
 		)
 		return (
-			maxf(hand.distance_to(hit["position"] as Vector3), 0.05)
+			maxf(hand.distance_to(hit["position"] as Vector3), minimum_distance)
 			if not hit.is_empty()
-			else distance
+			else maxf(distance, minimum_distance)
 		)
 	var sphere: SphereShape3D = SphereShape3D.new()
 	sphere.radius = avoid_obstacles.camera_radius
 	var first_fraction: float = _cast_shape(world_node, sphere, hand, get_rig_positions()[1], exclusions)
 	if first_fraction < 1.0:
-		return 0.05
+		return minimum_distance
 	var second_fraction: float = _cast_shape(world_node, sphere, hand, end, exclusions)
-	return maxf(distance * second_fraction, 0.05)
+	return maxf(distance * second_fraction, minimum_distance)
 
 func _cast_shape(
 	world_node: Node3D,

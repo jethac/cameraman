@@ -31,6 +31,7 @@ var _hit_source: CameramanImpulseSource
 var _recoil_source: CameramanImpulseSource
 var _hit_definition: CameramanImpulseDefinition
 var _enemies: Array[Node3D] = []
+var _player_meshes: Array[MeshInstance3D] = []
 
 func _ready() -> void:
 	_autopilot = "--autopilot" in OS.get_cmdline_user_args()
@@ -48,6 +49,7 @@ func _process(delta: float) -> void:
 	_update_camera_priorities()
 	_update_player_state(delta)
 	_update_courtyard_bounds()
+	_update_player_visibility()
 	if Input.is_action_just_pressed("fire"):
 		_fire()
 	_update_hud()
@@ -167,6 +169,7 @@ func _create_camera_rig() -> void:
 	_brain.default_blend.time = 0.6
 	_brain.custom_blends = _make_custom_blends()
 	_output.add_child(_brain)
+	_output.near = 0.05
 	var cameras: Node3D = Node3D.new()
 	cameras.name = "Cameras"
 	add_child(cameras)
@@ -196,6 +199,7 @@ func _make_follow_camera(parent: Node3D) -> CameramanCamera:
 	avoidance.camera_radius = 0.3
 	avoidance.damping_into = 0.2
 	avoidance.damping_from_collision = 0.3
+	avoidance.minimum_distance_from_target = 0.6
 	avoidance.ignore_group = &"player"
 	follow.avoid_obstacles = avoidance
 	camera.add_child(follow)
@@ -217,6 +221,12 @@ func _make_aim_camera(parent: Node3D) -> CameramanCamera:
 	follow.camera_distance = 1.8
 	follow.damping = Vector3.ONE * 0.05
 	follow.follow_target = _player
+	var avoidance: CameramanObstacleAvoidance = CameramanObstacleAvoidance.new()
+	avoidance.enabled = true
+	avoidance.camera_radius = 0.3
+	avoidance.minimum_distance_from_target = 0.6
+	avoidance.ignore_group = &"player"
+	follow.avoid_obstacles = avoidance
 	camera.add_child(follow)
 	var aim: CameramanThirdPersonAim = CameramanThirdPersonAim.new()
 	aim.aim_collision_mask = 1
@@ -483,6 +493,23 @@ func _update_courtyard_bounds() -> void:
 	if _courtyard_bounds == null or not _courtyard_bounds.is_inside_tree():
 		return
 	_courtyard_bounds.global_position = COURTYARD_CENTER + Vector3.UP * 5.25
+
+func _update_player_visibility() -> void:
+	if _player == null or _output == null:
+		return
+	if _player_meshes.is_empty():
+		_collect_player_meshes(_player)
+	var head_position: Vector3 = _player.global_position + Vector3.UP * 0.9
+	var hide_player: bool = _output.global_position.distance_squared_to(head_position) < 1.0
+	for mesh in _player_meshes:
+		if is_instance_valid(mesh):
+			mesh.visible = not hide_player
+
+func _collect_player_meshes(node: Node) -> void:
+	for child in node.get_children():
+		if child is MeshInstance3D:
+			_player_meshes.append(child as MeshInstance3D)
+		_collect_player_meshes(child)
 
 func _create_hud() -> void:
 	var layer: CanvasLayer = CanvasLayer.new()
