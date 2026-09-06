@@ -200,11 +200,10 @@ func _create_brain() -> void:
 		nodes.append(camera)
 	var brain: CameramanBrain = CameramanBrain.new()
 	brain.name = "CameramanBrain"
-	camera.add_child(brain)
 	if nodes.is_empty():
-		nodes.append(brain)
-		_commit_nodes("Create Brain", camera, nodes)
+		_commit_nodes("Create Brain", camera, [brain])
 	else:
+		camera.add_child(brain)
 		_commit_nodes("Create Brain", selected, nodes)
 
 func _create_camera() -> void:
