@@ -1,0 +1,67 @@
+class_name CameramanBlend
+extends RefCounted
+
+var cam_a: Object
+var cam_b: Object
+var curve: Curve
+var duration: float = 0.0
+var time_in_blend: float = 0.0
+var custom_blender: CameramanBlender = CameramanBlender.new()
+var _state_a: CameramanCameraState
+var _state_b: CameramanCameraState
+var _state: CameramanCameraState
+
+func _init(
+	from_source: Object = null,
+	to_source: Object = null,
+	definition: CameramanBlendDefinition = null
+) -> void:
+	cam_a = from_source
+	cam_b = to_source
+	if definition == null:
+		definition = CameramanBlendDefinition.new()
+	curve = definition.get_curve()
+	duration = definition.blend_time()
+
+func blend_weight() -> float:
+	if duration <= 0.0:
+		return 1.0
+	return curve.sample(clampf(time_in_blend / duration, 0.0, 1.0))
+
+func is_complete() -> bool:
+	return duration <= 0.0 or time_in_blend >= duration
+
+func is_valid() -> bool:
+	return cam_a != null and cam_b != null and cam_a.is_valid() and cam_b.is_valid()
+
+func uses(camera: Object) -> bool:
+	return cam_a == camera or cam_b == camera
+
+func update_state(world_up: Vector3, delta: float) -> void:
+	if cam_a == null or cam_b == null:
+		return
+	if not _is_frozen(cam_a):
+		cam_a.update_state(world_up, delta)
+	if not _is_frozen(cam_b):
+		cam_b.update_state(world_up, delta)
+	_state_a = cam_a.get_state()
+	_state_b = cam_b.get_state()
+	_state = custom_blender.blend(_state_a, _state_b, blend_weight())
+	time_in_blend += maxf(delta, 0.0)
+
+func get_state() -> CameramanCameraState:
+	if _state == null:
+		if cam_a != null and cam_b != null:
+			_state = custom_blender.blend(cam_a.get_state(), cam_b.get_state(), blend_weight())
+		else:
+			_state = CameramanCameraState.create_default()
+	return _state
+
+func description() -> String:
+	return "%s -> %s" % [_source_description(cam_a), _source_description(cam_b)]
+
+func _source_description(source: Object) -> String:
+	return source.get_description() if source != null else "<none>"
+
+func _is_frozen(source: Object) -> bool:
+	return source is CameramanFrozenSource
