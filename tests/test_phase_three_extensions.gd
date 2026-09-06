@@ -78,6 +78,119 @@ func test_confiner_3d_clamps_box() -> void:
 	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, state, 0.1)
 	assert_almost_eq(state.get_final_position().x, 2.0, 0.001)
 
+func test_confiner_3d_clamps_convex_tetrahedron() -> void:
+	var camera: Node3D = Node3D.new()
+	add_child_autofree(camera)
+	var shape: CollisionShape3D = CollisionShape3D.new()
+	var convex: ConvexPolygonShape3D = ConvexPolygonShape3D.new()
+	convex.points = PackedVector3Array([
+		Vector3.ZERO,
+		Vector3(4.0, 0.0, 0.0),
+		Vector3(0.0, 4.0, 0.0),
+		Vector3(0.0, 0.0, 4.0)
+	])
+	shape.shape = convex
+	camera.add_child(shape)
+	var extension: CameramanConfiner3D = CameramanConfiner3D.new()
+	autofree(extension)
+	var inside: CameramanCameraState = CameramanCameraState.create_default()
+	inside.raw_position = Vector3.ONE
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, inside, 0.1)
+	assert_almost_eq(inside.get_final_position(), Vector3.ONE, Vector3.ONE * 0.001)
+	var face: CameramanCameraState = CameramanCameraState.create_default()
+	face.raw_position = Vector3(3.0, 3.0, 3.0)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, face, 0.1)
+	assert_almost_eq(
+		face.get_final_position(),
+		Vector3.ONE * (4.0 / 3.0),
+		Vector3.ONE * 0.01
+	)
+	var side: CameramanCameraState = CameramanCameraState.create_default()
+	side.raw_position = Vector3(-2.0, 1.0, 1.0)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, side, 0.1)
+	assert_almost_eq(side.get_final_position(), Vector3(0.0, 1.0, 1.0), Vector3.ONE * 0.01)
+
+func test_confiner_3d_convex_hull_handles_coplanar_box_points() -> void:
+	var camera: Node3D = Node3D.new()
+	add_child_autofree(camera)
+	var shape: CollisionShape3D = CollisionShape3D.new()
+	var convex: ConvexPolygonShape3D = ConvexPolygonShape3D.new()
+	convex.points = PackedVector3Array([
+		Vector3(-1.0, -1.0, -1.0),
+		Vector3(1.0, -1.0, -1.0),
+		Vector3(-1.0, 1.0, -1.0),
+		Vector3(1.0, 1.0, -1.0),
+		Vector3(-1.0, -1.0, 1.0),
+		Vector3(1.0, -1.0, 1.0),
+		Vector3(-1.0, 1.0, 1.0),
+		Vector3(1.0, 1.0, 1.0)
+	])
+	shape.shape = convex
+	camera.add_child(shape)
+	var extension: CameramanConfiner3D = CameramanConfiner3D.new()
+	autofree(extension)
+	var inside: CameramanCameraState = CameramanCameraState.create_default()
+	inside.raw_position = Vector3(0.5, 0.5, 0.5)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, inside, 0.1)
+	assert_almost_eq(inside.get_final_position(), Vector3.ONE * 0.5, Vector3.ONE * 0.001)
+	var outside: CameramanCameraState = CameramanCameraState.create_default()
+	outside.raw_position = Vector3(5.0, 0.0, 0.0)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, outside, 0.1)
+	assert_almost_eq(outside.get_final_position(), Vector3(1.0, 0.0, 0.0), Vector3.ONE * 0.01)
+
+func test_confiner_3d_clamps_concave_cube_faces() -> void:
+	var camera: Node3D = Node3D.new()
+	add_child_autofree(camera)
+	var shape: CollisionShape3D = CollisionShape3D.new()
+	var concave: ConcavePolygonShape3D = ConcavePolygonShape3D.new()
+	var corners: Array[Vector3] = [
+		Vector3(-1.0, -1.0, -1.0),
+		Vector3(1.0, -1.0, -1.0),
+		Vector3(1.0, 1.0, -1.0),
+		Vector3(-1.0, 1.0, -1.0),
+		Vector3(-1.0, -1.0, 1.0),
+		Vector3(1.0, -1.0, 1.0),
+		Vector3(1.0, 1.0, 1.0),
+		Vector3(-1.0, 1.0, 1.0)
+	]
+	concave.set_faces(PackedVector3Array([
+		corners[0], corners[1], corners[2], corners[0], corners[2], corners[3],
+		corners[4], corners[6], corners[5], corners[4], corners[7], corners[6],
+		corners[0], corners[4], corners[5], corners[0], corners[5], corners[1],
+		corners[3], corners[2], corners[6], corners[3], corners[6], corners[7],
+		corners[0], corners[3], corners[7], corners[0], corners[7], corners[4],
+		corners[1], corners[5], corners[6], corners[1], corners[6], corners[2]
+	]))
+	shape.shape = concave
+	camera.add_child(shape)
+	var extension: CameramanConfiner3D = CameramanConfiner3D.new()
+	autofree(extension)
+	var inside: CameramanCameraState = CameramanCameraState.create_default()
+	inside.raw_position = Vector3(0.2, 0.2, 0.2)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, inside, 0.1)
+	assert_almost_eq(inside.get_final_position(), Vector3.ONE * 0.2, Vector3.ONE * 0.001)
+	var outside: CameramanCameraState = CameramanCameraState.create_default()
+	outside.raw_position = Vector3(3.0, 0.0, 0.0)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, outside, 0.1)
+	assert_almost_eq(outside.get_final_position(), Vector3(1.0, 0.0, 0.0), Vector3.ONE * 0.01)
+
+func test_confiner_3d_slowing_distance_bypasses_damping() -> void:
+	var camera: Node3D = Node3D.new()
+	add_child_autofree(camera)
+	var shape: CollisionShape3D = CollisionShape3D.new()
+	var box: BoxShape3D = BoxShape3D.new()
+	box.size = Vector3(4.0, 4.0, 4.0)
+	shape.shape = box
+	camera.add_child(shape)
+	var extension: CameramanConfiner3D = CameramanConfiner3D.new()
+	extension.damping = Vector3.ONE
+	extension.slowing_distance = 10.0
+	autofree(extension)
+	var state: CameramanCameraState = CameramanCameraState.create_default()
+	state.raw_position = Vector3(4.0, 0.0, 0.0)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, state, 0.1)
+	assert_almost_eq(state.get_final_position(), Vector3(2.0, 0.0, 0.0), Vector3.ONE * 0.001)
+
 func test_confiner_2d_clamps_window() -> void:
 	var previous_aspect_ratio: float = CameramanCameraState.aspect_ratio
 	CameramanCameraState.aspect_ratio = 1280.0 / 720.0
