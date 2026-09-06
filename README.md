@@ -69,6 +69,11 @@ the output camera.
 | CameramanThirdPersonAim | [extensions/cameraman_third_person_aim.gd](addons/cameraman/extensions/cameraman_third_person_aim.gd) |
 | CameramanCameraAttributes | [extensions/cameraman_camera_attributes.gd](addons/cameraman/extensions/cameraman_camera_attributes.gd) |
 
+`CameramanStoryboard` supports overlay and camera-space CanvasLayer rendering,
+as well as a world-space quad positioned at `world_distance` from the output
+camera. Set `split_view` below `1.0` to clip the screen-space image to the
+left portion of the viewport.
+
 ## Demos
 
 The `demo/` directory contains third-person, free-look, 2D platformer, dolly,

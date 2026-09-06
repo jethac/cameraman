@@ -21,8 +21,29 @@ static var get_custom_blender: Callable
 static var registry: CameramanRegistry
 static var events: CameramanEventBus
 static var impulse_manager: RefCounted
+static var brains: Array = []
 static var _live_cameras: Dictionary = {}
 static var _update_token: int = 0
+
+static func register_brain(brain: Node) -> void:
+	if brain != null and not brains.has(brain):
+		brains.append(brain)
+
+static func unregister_brain(brain: Node) -> void:
+	brains.erase(brain)
+
+static func find_brain_for(camera: Node) -> Node:
+	var first_brain: Node
+	for brain_value in brains.duplicate():
+		var brain: Node = brain_value as Node
+		if not is_instance_valid(brain):
+			brains.erase(brain_value)
+			continue
+		if first_brain == null:
+			first_brain = brain
+		if brain.has_method("is_live") and bool(brain.call("is_live", camera)):
+			return brain
+	return first_brain
 
 static func get_registry() -> CameramanRegistry:
 	if registry == null:

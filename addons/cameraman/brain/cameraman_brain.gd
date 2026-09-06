@@ -46,6 +46,10 @@ func _init() -> void:
 
 func _ready() -> void:
 	process_priority = 1000
+	CameramanCore.register_brain(self)
+
+func _exit_tree() -> void:
+	CameramanCore.unregister_brain(self)
 
 func _process(delta: float) -> void:
 	_record_target_transforms(false)

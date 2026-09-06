@@ -392,6 +392,82 @@ func test_storyboard_overlay_handlers_create_and_hide() -> void:
 	assert_gt(storyboard.get_child_count(), 0)
 	storyboard.on_camera_deactivated(camera, null)
 
+func test_storyboard_world_space_fills_output_frustum() -> void:
+	var root: Node3D = Node3D.new()
+	var output: Camera3D = Camera3D.new()
+	output.fov = 90.0
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.MANUAL
+	output.add_child(brain)
+	root.add_child(output)
+	var camera: CameramanCamera = CameramanCamera.new()
+	var storyboard: CameramanStoryboard = CameramanStoryboard.new()
+	storyboard.render_mode = CameramanStoryboard.RenderMode.WORLD_SPACE
+	storyboard.aspect = CameramanStoryboard.Aspect.STRETCH_TO_FIT
+	storyboard.world_distance = 2.0
+	storyboard.image = ImageTexture.create_from_image(
+		Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	)
+	camera.add_child(storyboard)
+	root.add_child(camera)
+	add_child_autofree(root)
+	brain.manual_update(0.1)
+	output.fov = 90.0
+	storyboard._process(0.1)
+	var quad: MeshInstance3D = storyboard.get_child(0) as MeshInstance3D
+	assert_not_null(quad)
+	assert_eq(storyboard.get_child_count(), 1)
+	var viewport_size: Vector2 = output.get_viewport().get_visible_rect().size
+	var viewport_aspect: float = viewport_size.x / viewport_size.y
+	var quad_mesh: QuadMesh = quad.mesh as QuadMesh
+	assert_almost_eq(quad_mesh.size.y, 4.0, 0.01)
+	assert_almost_eq(quad_mesh.size.x, 4.0 * viewport_aspect, 0.01)
+	assert_almost_eq(
+		quad.global_position,
+		output.global_position + output.global_basis * Vector3(0.0, 0.0, -2.0),
+		Vector3.ONE * 0.01
+	)
+
+func test_storyboard_switches_render_modes() -> void:
+	var root: Node3D = Node3D.new()
+	var output: Camera3D = Camera3D.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.MANUAL
+	output.add_child(brain)
+	root.add_child(output)
+	var camera: CameramanCamera = CameramanCamera.new()
+	var storyboard: CameramanStoryboard = CameramanStoryboard.new()
+	storyboard.render_mode = CameramanStoryboard.RenderMode.WORLD_SPACE
+	storyboard.image = ImageTexture.create_from_image(
+		Image.create(16, 16, false, Image.FORMAT_RGBA8)
+	)
+	camera.add_child(storyboard)
+	root.add_child(camera)
+	add_child_autofree(root)
+	brain.manual_update(0.1)
+	storyboard._process(0.1)
+	assert_true(storyboard.get_child(0) is MeshInstance3D)
+	storyboard.render_mode = CameramanStoryboard.RenderMode.SCREEN_SPACE_OVERLAY
+	storyboard._process(0.1)
+	assert_true(storyboard.get_child(0) is CanvasLayer)
+	assert_eq((storyboard.get_child(0) as CanvasLayer).layer, 100)
+	storyboard.render_mode = CameramanStoryboard.RenderMode.SCREEN_SPACE_CAMERA
+	storyboard._process(0.1)
+	assert_true(storyboard.get_child(0) is CanvasLayer)
+	assert_eq((storyboard.get_child(0) as CanvasLayer).layer, 1)
+
+func test_storyboard_split_view_clips_to_view_width() -> void:
+	var camera: Node3D = Node3D.new()
+	var storyboard: CameramanStoryboard = CameramanStoryboard.new()
+	storyboard.split_view = 0.5
+	camera.add_child(storyboard)
+	add_child_autofree(camera)
+	storyboard._process(0.1)
+	var layer: CanvasLayer = storyboard.get_child(0) as CanvasLayer
+	var clipping_control: Control = layer.get_child(0) as Control
+	var viewport_width: float = camera.get_viewport().get_visible_rect().size.x
+	assert_almost_eq(clipping_control.size.x, viewport_width * 0.5, 0.01)
+
 func test_propagating_impulse_arrives_late() -> void:
 	var definition: CameramanImpulseDefinition = CameramanImpulseDefinition.new()
 	definition.impulse_type = CameramanImpulseDefinition.ImpulseType.PROPAGATING
