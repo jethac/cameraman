@@ -574,10 +574,6 @@ func _create_2d_demo() -> void:
 	)
 	var output: Camera2D = Camera2D.new()
 	output.name = "OutputCamera"
-	output.limit_left = int(PLATFORMER_LEVEL_LEFT)
-	output.limit_right = int(PLATFORMER_LEVEL_RIGHT)
-	output.limit_top = int(PLATFORMER_LEVEL_TOP)
-	output.limit_bottom = int(PLATFORMER_LEVEL_BOTTOM)
 	add_child(output)
 	_brain = CameramanBrain2D.new()
 	_brain.name = "Brain2D"
