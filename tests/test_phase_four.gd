@@ -238,6 +238,7 @@ func test_plugin_script_and_demo_scenes_load() -> void:
 	]:
 		var scene: PackedScene = load("res://demo/%s.tscn" % demo_name)
 		assert_not_null(scene)
+
 		var instance: Node = scene.instantiate()
 		add_child_autofree(instance)
 		await get_tree().process_frame
@@ -256,10 +257,24 @@ func test_plugin_script_and_demo_scenes_load() -> void:
 				assert_not_null(brain.current_camera_state, demo_name)
 			else:
 				assert_not_null(brain.active_virtual_camera, demo_name)
-		if demo_name == "platformer_2d":
-			await get_tree().process_frame
-			await get_tree().process_frame
-			var output: Camera2D = instance.get_node("OutputCamera") as Camera2D
-			var player: Node2D = instance.get_node("Level/PlatformerPlayer") as Node2D
-			assert_lt(output.global_position.distance_to(player.global_position), 200.0)
+			if demo_name == "platformer_2d":
+				await get_tree().process_frame
+				await get_tree().process_frame
+				var output: Camera2D = instance.get_node("OutputCamera") as Camera2D
+				var player: Node2D = instance.get_node("Level/PlatformerPlayer") as Node2D
+				assert_lt(output.global_position.distance_to(player.global_position), 200.0)
 	assert_true(FileAccess.file_exists("res://addons/cameraman/plugin.cfg"))
+
+func test_projectile_registers_enemy_hit() -> void:
+	var root := Node3D.new()
+	var enemy := CameramanDemoEnemy.new()
+	enemy.position = Vector3(0.0, 1.0, -2.0)
+	var projectile := CameramanDemoProjectile.new()
+	projectile.position = Vector3(0.0, 1.0, 0.0)
+	root.add_child(enemy)
+	root.add_child(projectile)
+	add_child_autofree(root)
+	projectile.linear_velocity = Vector3(0.0, 0.0, -10.0)
+	for _index in 24:
+		await get_tree().physics_frame
+	assert_eq(enemy.hit_count, 1)
