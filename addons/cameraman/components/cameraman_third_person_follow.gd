@@ -26,8 +26,10 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	var root: Vector3 = target.global_position
 	var shoulder: Vector3 = root + target_rotation * side_offset
 	var hand: Vector3 = shoulder + target_rotation * Vector3(0.0, vertical_arm_length, 0.0)
-	var desired_distance: float = _get_obstacle_distance(hand, target_rotation, delta)
-	var desired: Vector3 = hand + target_rotation * Vector3(0.0, 0.0, desired_distance)
+	var obstacle_path: Dictionary = _get_obstacle_path(root, hand, target_rotation, delta)
+	var effective_hand: Vector3 = obstacle_path["hand"] as Vector3
+	var desired_distance: float = float(obstacle_path["distance"])
+	var desired: Vector3 = effective_hand + target_rotation * Vector3(0.0, 0.0, desired_distance)
 	if not vcam.previous_state_is_valid:
 		state.raw_position = desired
 	else:
@@ -71,14 +73,20 @@ func on_transition_from_camera(from: Object, _world_up: Vector3, _delta: float) 
 	force_camera_position(previous.get_final_position(), previous.get_final_orientation())
 	return true
 
-func _get_obstacle_distance(hand: Vector3, rotation: Quaternion, delta: float) -> float:
+func _get_obstacle_path(
+	root: Vector3,
+	hand: Vector3,
+	rotation: Quaternion,
+	delta: float
+) -> Dictionary:
 	var desired_distance: float = camera_distance
 	if avoid_obstacles == null or not avoid_obstacles.enabled or not is_inside_tree():
-		return desired_distance
+		return {"hand": hand, "distance": desired_distance}
 	var world_node: Node3D = vcam as Node3D
 	if world_node == null or world_node.get_world_3d() == null:
-		return desired_distance
-	var target_distance: float = _cast_camera_path(world_node, hand, rotation, desired_distance)
+		return {"hand": hand, "distance": desired_distance}
+	var path: Dictionary = _cast_camera_path(world_node, root, hand, rotation, desired_distance)
+	var target_distance: float = float(path["distance"])
 	if _collision_distance < 0.0:
 		_collision_distance = target_distance
 	var damp_time: float = (
@@ -89,38 +97,63 @@ func _get_obstacle_distance(hand: Vector3, rotation: Quaternion, delta: float) -
 	_collision_distance += (target_distance - _collision_distance) * (
 		CameramanDamper.damp(1.0, damp_time, delta)
 	)
-	return _collision_distance
+	return {
+		"hand": path["hand"] as Vector3,
+		"distance": _collision_distance
+	}
 
 func _cast_camera_path(
 	world_node: Node3D,
+	root: Vector3,
 	hand: Vector3,
 	rotation: Quaternion,
 	distance: float
-) -> float:
-	var end: Vector3 = hand + rotation * Vector3(0.0, 0.0, distance)
+) -> Dictionary:
 	var exclusions: Array[RID] = _get_collision_exclusions()
 	var minimum_distance: float = maxf(avoid_obstacles.minimum_distance_from_target, 0.05)
+	var hand_fraction: float
 	if avoid_obstacles.camera_radius <= 0.0:
-		var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(hand, end)
-		query.collision_mask = avoid_obstacles.collision_mask
-		query.exclude = exclusions
-		var hit: Dictionary = _intersect_ray_ignoring_groups(
-			world_node.get_world_3d().direct_space_state,
-			query,
-			exclusions
-		)
-		return (
-			maxf(hand.distance_to(hit["position"] as Vector3), minimum_distance)
-			if not hit.is_empty()
-			else maxf(distance, minimum_distance)
-		)
-	var sphere: SphereShape3D = SphereShape3D.new()
-	sphere.radius = avoid_obstacles.camera_radius
-	var first_fraction: float = _cast_shape(world_node, sphere, hand, get_rig_positions()[1], exclusions)
-	if first_fraction < 1.0:
-		return minimum_distance
-	var second_fraction: float = _cast_shape(world_node, sphere, hand, end, exclusions)
-	return maxf(distance * second_fraction, minimum_distance)
+		hand_fraction = _cast_ray_fraction(world_node, root, hand, exclusions)
+	else:
+		var sphere: SphereShape3D = SphereShape3D.new()
+		sphere.radius = avoid_obstacles.camera_radius
+		hand_fraction = _cast_shape(world_node, sphere, root, hand, exclusions)
+	if hand_fraction <= 0.0:
+		return {"hand": root, "distance": minimum_distance}
+	var effective_hand: Vector3 = root.lerp(hand, maxf(hand_fraction - 0.01, 0.0))
+	var end: Vector3 = effective_hand + rotation * Vector3(0.0, 0.0, distance)
+	var end_fraction: float
+	if avoid_obstacles.camera_radius <= 0.0:
+		end_fraction = _cast_ray_fraction(world_node, effective_hand, end, exclusions)
+	else:
+		var end_sphere: SphereShape3D = SphereShape3D.new()
+		end_sphere.radius = avoid_obstacles.camera_radius
+		end_fraction = _cast_shape(world_node, end_sphere, effective_hand, end, exclusions)
+	return {
+		"hand": effective_hand,
+		"distance": maxf(distance * end_fraction, minimum_distance)
+	}
+
+func _cast_ray_fraction(
+	world_node: Node3D,
+	start: Vector3,
+	end: Vector3,
+	exclusions: Array[RID]
+) -> float:
+	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(start, end)
+	query.collision_mask = avoid_obstacles.collision_mask
+	query.exclude = exclusions
+	var hit: Dictionary = _intersect_ray_ignoring_groups(
+		world_node.get_world_3d().direct_space_state,
+		query,
+		exclusions
+	)
+	if hit.is_empty():
+		return 1.0
+	var span: float = start.distance_to(end)
+	if span <= 0.0001:
+		return 0.0
+	return clampf(start.distance_to(hit["position"] as Vector3) / span, 0.0, 1.0)
 
 func _cast_shape(
 	world_node: Node3D,

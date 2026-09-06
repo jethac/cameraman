@@ -117,6 +117,48 @@ func test_third_person_follow_respects_minimum_obstacle_distance() -> void:
 	var rig: Array[Vector3] = follow.get_rig_positions()
 	assert_gte(camera.get_state().raw_position.distance_to(rig[2]), 0.6)
 
+func test_third_person_follow_slides_shoulder_around_obstacle() -> void:
+	var root: Node3D = Node3D.new()
+	var target: CharacterBody3D = CharacterBody3D.new()
+	var target_shape: CollisionShape3D = CollisionShape3D.new()
+	var capsule: CapsuleShape3D = CapsuleShape3D.new()
+	capsule.radius = 0.45
+	capsule.height = 2.0
+	target_shape.shape = capsule
+	target.add_child(target_shape)
+	var wall: StaticBody3D = StaticBody3D.new()
+	wall.position = Vector3(1.1, 1.6, 0.0)
+	var wall_shape: CollisionShape3D = CollisionShape3D.new()
+	var wall_box: BoxShape3D = BoxShape3D.new()
+	wall_box.size = Vector3(1.0, 3.0, 3.0)
+	wall_shape.shape = wall_box
+	wall.add_child(wall_shape)
+	var camera: CameramanCamera = CameramanCamera.new()
+	camera.tracking_target = target
+	var follow: CameramanThirdPersonFollow = CameramanThirdPersonFollow.new()
+	follow.shoulder_offset = Vector3(0.6, 1.6, 0.0)
+	follow.vertical_arm_length = 0.3
+	follow.camera_distance = 4.5
+	var avoidance: CameramanObstacleAvoidance = CameramanObstacleAvoidance.new()
+	avoidance.enabled = true
+	avoidance.camera_radius = 0.3
+	avoidance.minimum_distance_from_target = 0.6
+	follow.avoid_obstacles = avoidance
+	camera.add_child(follow)
+	root.add_child(target)
+	root.add_child(wall)
+	root.add_child(camera)
+	add_child_autofree(root)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	camera.update_state(Vector3.UP, 0.1)
+	var rig: Array[Vector3] = follow.get_rig_positions()
+	var camera_position: Vector3 = camera.get_state().raw_position
+	assert_gt(camera_position.z, 3.5)
+	assert_lt(absf(camera_position.x), 0.6)
+	assert_almost_eq(camera_position.x, 0.3, 0.15)
+	assert_gt(camera_position.distance_to(rig[2]), 0.6)
+
 func test_orbital_on_assign_captures_identity_target_basis() -> void:
 	var root: Node = Node.new()
 	var target: Node3D = Node3D.new()
