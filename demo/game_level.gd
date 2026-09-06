@@ -100,8 +100,8 @@ func _create_ground_and_layout() -> void:
 		var z: float = 22.0 + float(index / 2) * 16.0
 		_add_static_box("ArenaPillar%d" % index, Vector3(x, 2.5, z), Vector3.ONE, Color("#d36b76"), 5.0)
 	_add_static_box("BridgeDeck", Vector3(80.0, 3.0, 30.0), Vector3(32.0, 0.6, 4.0), Color("#9e8a55"))
-	_add_ramp("BridgeRampStart", Vector3(59.5, -0.4, 30.0), Vector3(9.0, 3.6, 4.0), Color("#9e8a55"), 17.0)
-	_add_ramp("BridgeRampEnd", Vector3(103.5, -0.47, 30.0), Vector3(15.5, 3.6, 4.0), Color("#9e8a55"), -17.0)
+	_add_ramp("BridgeRampStart", Vector3(58.55, -0.15, 30.0), Vector3(11.8, 3.6, 4.0), Color("#9e8a55"), 17.0)
+	_add_ramp("BridgeRampEnd", Vector3(103.22, -0.76, 30.0), Vector3(15.5, 3.6, 4.0), Color("#9e8a55"), -17.0)
 	var courtyard_color := Color("#3e746b")
 	_add_static_box("CourtyardEastWall", Vector3(120.0, 2.0, 30.0), Vector3(0.5, 4.0, 30.0), courtyard_color)
 	_add_static_box("CourtyardNorthWall", Vector3(107.5, 2.0, 44.75), Vector3(25.0, 4.0, 0.5), courtyard_color)
