@@ -6,6 +6,7 @@ extends CharacterBody3D
 @export var jump_velocity: float = 6.0
 @export var mouse_sensitivity: float = 0.003
 @export var mouse_look_enabled: bool = true
+@export var relatch_max_angle_degrees: float = 20.0
 
 var _pitch: float = 0.0
 var _move_basis_latched: bool = false
@@ -26,7 +27,7 @@ func _physics_process(delta: float) -> void:
 	)
 	var camera: Camera3D = get_viewport().get_camera_3d()
 	if input_vector.length_squared() > 0.001:
-		if not _move_basis_latched:
+		if not _move_basis_latched or _camera_turned_smoothly(camera):
 			_latch_move_basis(camera)
 	else:
 		_move_basis_latched = false
@@ -39,6 +40,18 @@ func _physics_process(delta: float) -> void:
 	if move_direction.length_squared() > 0.001 and not mouse_look_enabled:
 		rotation.y = lerp_angle(rotation.y, atan2(-move_direction.x, -move_direction.z), delta * 8.0)
 	move_and_slide()
+
+func _camera_turned_smoothly(camera: Camera3D) -> bool:
+	if camera == null:
+		return false
+	var camera_forward: Vector3 = -camera.global_basis.z
+	camera_forward.y = 0.0
+	if camera_forward.length_squared() < 0.0001:
+		return false
+	return (
+		rad_to_deg(camera_forward.normalized().angle_to(_move_forward))
+		<= relatch_max_angle_degrees
+	)
 
 func _latch_move_basis(camera: Camera3D) -> void:
 	var forward: Vector3 = -global_basis.z
