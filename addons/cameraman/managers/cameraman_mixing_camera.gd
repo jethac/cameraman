@@ -30,6 +30,10 @@ func internal_update_state(world_up: Vector3, delta: float) -> void:
 	live_child = _first_weighted_child()
 	previous_state_is_valid = true
 
+func is_live_child(camera: CameramanVirtualCameraBase) -> bool:
+	var index: int = get_child_cameras().find(camera)
+	return index >= 0 and index < 8 and get_weight(index) > 0.0
+
 func set_weight(index_or_camera: Variant, weight: float) -> void:
 	var index: int = int(index_or_camera) if index_or_camera is int else get_child_cameras().find(index_or_camera)
 	if index < 0 or index >= 8:
