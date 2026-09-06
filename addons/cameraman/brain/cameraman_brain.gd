@@ -280,10 +280,12 @@ func _update_debug_text() -> void:
 		_debug_label = Label.new()
 		_debug_label.position = Vector2(12.0, 12.0)
 		_debug_layer.add_child(_debug_label)
-	_debug_label.text = "Camera: %s\nBlend: %s" % [
-		active_virtual_camera.get_camera_name() if active_virtual_camera != null else "<none>",
-		active_blend.description() if active_blend != null else "<none>"
-	]
+	var source_description: String = "<none>"
+	if active_blend != null:
+		source_description = active_blend.description()
+	elif _blend_manager.active_source != null:
+		source_description = _blend_manager.active_source.get_description()
+	_debug_label.text = "Camera: %s" % source_description
 
 func _update_debug_frustum(state: CameramanCameraState) -> void:
 	var output: Camera3D = get_output_camera()

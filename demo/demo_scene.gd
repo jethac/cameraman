@@ -13,6 +13,7 @@ var _label: Label
 var _autopilot: bool = false
 var _impulse_source: CameramanImpulseSource
 var _sequence: CameramanSequencerCamera
+var _sequence_player: AnimationPlayer
 var _state_player: AnimationPlayer
 
 func _ready() -> void:
@@ -410,6 +411,7 @@ func _update_sequence_animation() -> void:
 	animation_player.add_animation_library("", library)
 	add_child(animation_player)
 	animation_player.play("Shots")
+	_sequence_player = animation_player
 
 func _create_impulse_setup(camera: CameramanCamera) -> void:
 	var noise: CameramanBasicMultiChannelPerlin = CameramanBasicMultiChannelPerlin.new()
@@ -587,7 +589,14 @@ func _add_hud() -> void:
 	layer.name = "DemoHUD"
 	add_child(layer)
 	_label = Label.new()
-	_label.position = Vector2(18.0, 18.0)
+	_label.anchor_left = 0.0
+	_label.anchor_top = 1.0
+	_label.anchor_right = 0.0
+	_label.anchor_bottom = 1.0
+	_label.offset_left = 18.0
+	_label.offset_top = -120.0
+	_label.offset_right = 720.0
+	_label.offset_bottom = -18.0
 	_label.add_theme_font_size_override("font_size", 20)
 	layer.add_child(_label)
 	_update_hud()
@@ -600,8 +609,8 @@ func _update_hud() -> void:
 		live_name = _brain.active_virtual_camera.name
 	var controls: String = "WASD move | Mouse/arrows look | Space jump/impulse | Esc menu"
 	var extra: String = ""
-	if demo_kind == "sequence" and _sequence != null:
-		extra = "\nSequence time: %.1fs" % _sequence.time_in_sequence
+	if demo_kind == "sequence" and _sequence_player != null:
+		extra = "\nSequence time: %.1fs" % _sequence_player.current_animation_position
 	if demo_kind == "state_driven" and _state_player != null:
 		extra = "\nState: %s" % _state_player.current_animation
 	_label.text = "%s\nLive camera: %s\n%s%s" % [

@@ -22,6 +22,11 @@ func get_child_cameras() -> Array[CameramanVirtualCameraBase]:
 			result.append(camera)
 	return result
 
+func get_description() -> String:
+	return "Manager [%s]" % (
+		live_child.get_description() if live_child != null else "<none>"
+	)
+
 func choose_current_camera(_world_up: Vector3, _delta: float) -> CameramanVirtualCameraBase:
 	var children: Array[CameramanVirtualCameraBase] = get_child_cameras()
 	children.sort_custom(func(a: CameramanVirtualCameraBase, b: CameramanVirtualCameraBase) -> bool:
