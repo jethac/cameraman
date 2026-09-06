@@ -184,11 +184,36 @@ func test_input_controller_applies_mouse_motion_to_discovered_axis() -> void:
 	var control: CameramanInputAxisControl = controller.get_controller("horizontal")
 	control.mouse_motion_axis = CameramanInputAxisControl.MouseMotionAxis.X
 	control.gain = 1.0
+	control.mouse_gain = 1.0
 	var motion: InputEventMouseMotion = InputEventMouseMotion.new()
 	motion.relative = Vector2(4.0, 0.0)
 	controller._input(motion)
 	controller._process(1.0 / 60.0)
 	assert_almost_eq(orbital.horizontal_axis.value, 4.0, 0.001)
+
+func test_input_controller_preserves_bindings_when_axes_resynchronize() -> void:
+	var root: Node = Node.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	var orbital: CameramanOrbitalFollow = CameramanOrbitalFollow.new()
+	var controller: CameramanInputAxisController = CameramanInputAxisController.new()
+	camera.add_child(orbital)
+	camera.add_child(controller)
+	root.add_child(camera)
+	add_child_autofree(root)
+	controller.synchronize_controllers()
+	var horizontal: CameramanInputAxisControl = controller.get_controller("horizontal")
+	horizontal.input_action_negative = &"look_left"
+	horizontal.input_action_positive = &"look_right"
+	horizontal.mouse_motion_axis = CameramanInputAxisControl.MouseMotionAxis.X
+	var second_component: CameramanPanTilt = CameramanPanTilt.new()
+	camera.add_child(second_component)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var synchronized: CameramanInputAxisControl = controller.get_controller("horizontal")
+	assert_eq(synchronized, horizontal)
+	assert_eq(synchronized.input_action_negative, &"look_left")
+	assert_eq(synchronized.input_action_positive, &"look_right")
+	assert_eq(synchronized.mouse_motion_axis, CameramanInputAxisControl.MouseMotionAxis.X)
 
 func test_spline_fixed_speed_advances_and_wraps_normalized_position() -> void:
 	var root: Node3D = Node3D.new()

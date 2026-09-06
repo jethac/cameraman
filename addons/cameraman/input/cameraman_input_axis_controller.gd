@@ -5,6 +5,7 @@ extends Node
 @export var ignore_time_scale: bool = false
 @export var scan_recursively: bool = false
 @export var suppress_input_while_blending: bool = false
+@export var controls: Array[CameramanInputAxisControl] = []
 
 var _controls: Dictionary = {}
 var _mouse_motion: Vector2 = Vector2.ZERO
@@ -29,9 +30,11 @@ func _process(delta: float) -> void:
 		var input_value: float = axis_control.read_action()
 		var mouse_delta: float = 0.0
 		if axis_control.mouse_motion_axis == CameramanInputAxisControl.MouseMotionAxis.X:
-			mouse_delta = _mouse_motion.x * axis_control.gain
+			mouse_delta = _mouse_motion.x * axis_control.mouse_gain
 		elif axis_control.mouse_motion_axis == CameramanInputAxisControl.MouseMotionAxis.Y:
-			mouse_delta = _mouse_motion.y * axis_control.gain
+			mouse_delta = _mouse_motion.y * axis_control.mouse_gain
+		if axis_control.invert:
+			mouse_delta = -mouse_delta
 		if not is_zero_approx(mouse_delta):
 			axis_control.axis.track_input_value(axis_control.axis.value + mouse_delta)
 			continue
@@ -56,10 +59,19 @@ func _on_camera_child_entered_tree(_child: Node) -> void:
 	call_deferred("synchronize_controllers")
 
 func synchronize_controllers() -> void:
-	_controls.clear()
 	var camera: Node = get_parent()
 	if camera == null:
 		return
+	var preserved: Dictionary = {}
+	for control in controls:
+		if control != null and not control.axis_name.is_empty():
+			preserved[control.axis_name] = control
+	for control in _controls.values():
+		var existing: CameramanInputAxisControl = control as CameramanInputAxisControl
+		if existing != null and not existing.axis_name.is_empty():
+			preserved[existing.axis_name] = existing
+	var synchronized: Array[CameramanInputAxisControl] = []
+	var next_controls: Dictionary = {}
 	var children: Array[Node] = camera.get_children()
 	for child in children:
 		var component: CameramanComponent = child as CameramanComponent
@@ -71,10 +83,16 @@ func synchronize_controllers() -> void:
 			var name_value: String = str(descriptor.get("name", ""))
 			if axis == null or name_value.is_empty():
 				continue
-			var control: CameramanInputAxisControl = CameramanInputAxisControl.new()
+			var control: CameramanInputAxisControl = preserved.get(name_value) as CameramanInputAxisControl
+			if control == null:
+				control = CameramanInputAxisControl.new()
+			control.axis_name = StringName(name_value)
 			control.axis = axis
 			control.owner = component
-			_controls[name_value] = control
+			next_controls[name_value] = control
+			synchronized.append(control)
+	_controls = next_controls
+	controls = synchronized
 
 func get_controller(name_value: String) -> CameramanInputAxisControl:
 	return _controls.get(name_value) as CameramanInputAxisControl

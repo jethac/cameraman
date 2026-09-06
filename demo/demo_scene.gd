@@ -267,13 +267,15 @@ func _configure_input_controller(controller: CameramanInputAxisController) -> vo
 		horizontal.input_action_negative = &"look_left"
 		horizontal.input_action_positive = &"look_right"
 		horizontal.mouse_motion_axis = CameramanInputAxisControl.MouseMotionAxis.X
-		horizontal.gain = 0.08
+		horizontal.gain = 120.0
+		horizontal.mouse_gain = 0.2
 	var vertical: CameramanInputAxisControl = controller.get_controller("vertical")
 	if vertical != null:
 		vertical.input_action_negative = &"look_down"
 		vertical.input_action_positive = &"look_up"
 		vertical.mouse_motion_axis = CameramanInputAxisControl.MouseMotionAxis.Y
-		vertical.gain = 0.08
+		vertical.gain = 120.0
+		vertical.mouse_gain = 0.2
 		vertical.invert = true
 
 func _create_dolly_path(camera: CameramanCamera, _target: Node3D) -> void:
@@ -529,7 +531,7 @@ func _create_2d_demo() -> void:
 	level_light.energy = 0.8
 	level.add_child(level_light)
 	for data in [
-		[Vector2(640.0, 620.0), Vector2(1200.0, 80.0), Color("#4d8f58")],
+		[Vector2(640.0, 620.0), Vector2(2280.0, 80.0), Color("#4d8f58")],
 		[Vector2(280.0, 470.0), Vector2(260.0, 35.0), Color("#d99058")],
 		[Vector2(700.0, 370.0), Vector2(280.0, 35.0), Color("#9a6bc4")],
 		[Vector2(1050.0, 270.0), Vector2(300.0, 35.0), Color("#d36b76")]
@@ -549,8 +551,8 @@ func _create_2d_demo() -> void:
 	player_shape.size = Vector2(32.0, 48.0)
 	player_collision.shape = player_shape
 	_platformer_player.add_child(player_collision)
-	_add_platform_boundary(level, Vector2(-20.0, 360.0), Vector2(40.0, 720.0))
-	_add_platform_boundary(level, Vector2(1300.0, 360.0), Vector2(40.0, 720.0))
+	_add_platform_boundary(level, Vector2(-500.0, 360.0), Vector2(40.0, 720.0))
+	_add_platform_boundary(level, Vector2(1780.0, 360.0), Vector2(40.0, 720.0))
 	_add_platform_boundary(level, Vector2(640.0, -20.0), Vector2(1320.0, 40.0))
 	var output: Camera2D = Camera2D.new()
 	output.name = "OutputCamera"
