@@ -9,6 +9,34 @@ config_version=5
 
 config/name="Cameraman"
 config/features=PackedStringArray("4.4")
+run/main_scene="res://demo/main_menu.tscn"
+
+[input]
+
+move_left={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":65)]
+}
+move_right={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":68)]
+}
+move_forward={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":87)]
+}
+move_back={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":83)]
+}
+jump={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":32)]
+}
+look={
+"deadzone": 0.5,
+"events": []
+}
 
 [rendering]
 

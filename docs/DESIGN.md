@@ -292,11 +292,15 @@ All expose `damping` as per-axis `Vector3` seconds unless noted, use `CameramanD
 ## 8. Manager cameras — `addons/cameraman/managers/`
 
 `CameramanCameraManagerBase` (CameramanVirtualCameraBase, abstract): children of type `CameramanVirtualCameraBase` are managed;
-`default_blend`, `custom_blends`, `default_target {tracking_target, look_at}` inherited by children lacking one; owns a `CameramanBlendManager`;
-abstract `choose_current_camera(world_up, dt) -> CameramanVirtualCameraBase`; `live_child`, `active_blend`; exposes the mixer duck-type. Children are hidden from the brain's registry (registered with the manager instead).
+`default_blend`, `custom_blends`; owns a `CameramanBlendManager`; `choose_current_camera(world_up, dt) ->
+CameramanVirtualCameraBase`; `live_child`, `is_live_child(camera)`, and `get_state()` expose the mixer state. Children
+are hidden from the brain's registry through the manager parent-mixer relationship.
 
 - `CameramanClearShot`: `activate_after`, `min_duration`, `randomize_choice`; picks the highest `shot_quality` child (ties → priority/order).
-- `CameramanStateDrivenCamera`: `animation_tree: AnimationTree` (state machine playback current node) **or** `state_provider: Node` with `get_state() -> StringName`, `instructions: Array[CameramanStateInstruction]` (Resource: `state: StringName, camera: NodePath, activate_after, min_duration`), `default_camera`.
+- `CameramanStateDrivenCamera`: `animation_tree_path` reads state-machine playback, or `animation_player_path` reads
+  `AnimationPlayer.current_animation`; `instructions: Array[CameramanStateDrivenInstruction]` (Resource:
+  `state_name: StringName, camera: NodePath, activate_after, min_duration`). Slash-separated parent states are matched
+  from most-specific to least-specific, then the highest-priority child is used as fallback.
 - `CameramanSequencerCamera`: `instructions: Array[CameramanSequencerInstruction]` (camera, blend, hold), `loop`; restarts on activation.
 - `CameramanMixingCamera`: `weights: Array[float]` (max 8, animatable); state = weighted `CameramanCameraState.lerp` chain.
 
@@ -319,8 +323,11 @@ abstract `choose_current_camera(world_up, dt) -> CameramanVirtualCameraBase`; `l
 ## 11. Timeline (choreographed shots) — `addons/cameraman/timeline/`
 
 Godot has no clip timeline, so the authored-sequence path is `AnimationPlayer`-driven:
-- `CameramanShot` (Node, child of a brain): `camera: CameramanVirtualCameraBase`, `@export var weight: float = 0` (0..1, animatable), `@export var active := false` (animatable), `ease_in/ease_out: Curve`, `track_priority: int`. While active it pushes/updates a brain override (`set_camera_override`) with itself as cam_b and the brain's current live camera as cam_a, using `weight`. Two overlapping active shots on different track priorities blend (higher priority is cam_b). Releases the override when `active` becomes false or the node exits.
-- `CameramanShotSequence` (Node): a data-driven alternative — `shots: Array[CameramanShotClip]` (Resource: camera, start, duration, blend_in) evaluated from `time` (animatable) or auto-advancing (`play()`, `stop()`, `seek()`); computes overlaps into brain overrides. This is what the docs mean by "timeline": both nodes drive the same override stack; `CameramanCore.uniform_delta_time_override` supports deterministic scrubbing.
+- `CameramanShot` (Node): `camera: NodePath`, exported animatable `weight`, and `active`.
+- `CameramanShotSequence` (Node): resolves a brain from `brain_path` or its parent, selects the two highest-weight
+  active shots, and maintains one `set_camera_override` handle. `manual_time_step(delta)` seeks child
+  `AnimationPlayer` nodes with `seek(time, true)` before evaluating the override; releasing all active shots releases
+  the handle. `priority` maps directly to the brain override priority.
 
 ## 12. Editor — `addons/cameraman/editor/` (`plugin.cfg`, `cameraman_plugin.gd`)
 - Registers custom node types with icons (`icons/*.svg`).

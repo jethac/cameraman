@@ -38,6 +38,8 @@ var _live_camera: CameramanVirtualCameraBase
 var _standby_index: int = 0
 var _update_tracker: CameramanUpdateTracker = CameramanUpdateTracker.new()
 var _update_token: int = 0
+var _frustum_mesh: ImmediateMesh
+var _frustum_instance: MeshInstance3D
 
 func _init() -> void:
 	default_blend = CameramanBlendDefinition.new()
@@ -159,6 +161,7 @@ func _update_frame(raw_delta: float, clock_frame: int) -> void:
 			camera_cut.emit(self)
 	current_camera_state = _blend_manager.update(world_up, delta, Callable(self, "_update_camera"))
 	_apply_state(current_camera_state)
+	_update_debug_frustum(current_camera_state)
 	_update_standby_cameras(world_up, delta)
 	CameramanCore.get_events().camera_updated.emit(self)
 	_update_debug_text()
@@ -281,3 +284,51 @@ func _update_debug_text() -> void:
 		active_virtual_camera.get_camera_name() if active_virtual_camera != null else "<none>",
 		active_blend.description() if active_blend != null else "<none>"
 	]
+
+func _update_debug_frustum(state: CameramanCameraState) -> void:
+	var output: Camera3D = get_output_camera()
+	if output == null or not show_camera_frustum:
+		if _frustum_instance != null:
+			_frustum_instance.queue_free()
+			_frustum_instance = null
+			_frustum_mesh = null
+		return
+	if _frustum_instance != null:
+		return
+	_frustum_mesh = ImmediateMesh.new()
+	_frustum_instance = MeshInstance3D.new()
+	_frustum_instance.name = "CameramanFrustumDebug"
+	_frustum_instance.mesh = _frustum_mesh
+	output.add_child(_frustum_instance)
+	var material: StandardMaterial3D = StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.albedo_color = Color(0.2, 0.8, 1.0, 0.7)
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_frustum_instance.material_override = material
+	_frustum_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
+	var near_distance: float = state.lens.near
+	var far_distance: float = minf(state.lens.far, 100.0)
+	var near_half_height: float = tan(deg_to_rad(state.lens.fov_degrees) * 0.5) * near_distance
+	var far_half_height: float = tan(deg_to_rad(state.lens.fov_degrees) * 0.5) * far_distance
+	var near_half_width: float = near_half_height * CameramanCameraState.aspect_ratio
+	var far_half_width: float = far_half_height * CameramanCameraState.aspect_ratio
+	var near_points: Array[Vector3] = _frustum_points(near_distance, near_half_width, near_half_height)
+	var far_points: Array[Vector3] = _frustum_points(far_distance, far_half_width, far_half_height)
+	for index in range(4):
+		_add_debug_line(near_points[index], near_points[(index + 1) % 4])
+		_add_debug_line(far_points[index], far_points[(index + 1) % 4])
+		_add_debug_line(near_points[index], far_points[index])
+	_frustum_mesh.surface_end()
+
+func _frustum_points(depth: float, half_width: float, half_height: float) -> Array[Vector3]:
+	return [
+		Vector3(-half_width, -half_height, -depth),
+		Vector3(half_width, -half_height, -depth),
+		Vector3(half_width, half_height, -depth),
+		Vector3(-half_width, half_height, -depth)
+	]
+
+func _add_debug_line(start: Vector3, end: Vector3) -> void:
+	_frustum_mesh.surface_set_color(Color.WHITE)
+	_frustum_mesh.surface_add_vertex(start)
+	_frustum_mesh.surface_add_vertex(end)
