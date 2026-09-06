@@ -72,3 +72,73 @@ func test_override_and_solo_camera_selection() -> void:
 	CameramanCore.solo_camera = camera_a
 	assert_eq(CameramanCore.solo_camera, camera_a)
 	CameramanCore.solo_camera = null
+
+func test_blender_settings_exact_match_wins_and_ties_keep_first() -> void:
+	var settings: CameramanBlenderSettings = CameramanBlenderSettings.new()
+	var any_definition: CameramanBlendDefinition = CameramanBlendDefinition.new()
+	any_definition.time = 1.0
+	var exact_definition: CameramanBlendDefinition = CameramanBlendDefinition.new()
+	exact_definition.time = 2.0
+	var second_exact_definition: CameramanBlendDefinition = CameramanBlendDefinition.new()
+	second_exact_definition.time = 3.0
+	var any_blend: CameramanCustomBlend = CameramanCustomBlend.new()
+	any_blend.definition = any_definition
+	var exact_blend: CameramanCustomBlend = CameramanCustomBlend.new()
+	exact_blend.from_name = "A"
+	exact_blend.to_name = "B"
+	exact_blend.definition = exact_definition
+	var second_exact: CameramanCustomBlend = CameramanCustomBlend.new()
+	second_exact.from_name = "A"
+	second_exact.to_name = "B"
+	second_exact.definition = second_exact_definition
+	settings.custom_blends = [any_blend, exact_blend, second_exact]
+	assert_eq(settings.get_blend_for("A", "B", CameramanBlendDefinition.new()), exact_definition)
+
+func test_update_tracker_classifies_physics_motion() -> void:
+	var target: Node3D = Node3D.new()
+	add_child_autofree(target)
+	var tracker: CameramanUpdateTracker = CameramanUpdateTracker.new()
+	tracker.record_process(target)
+	target.position.x = 1.0
+	tracker.record_physics(target)
+	tracker.record_process(target)
+	assert_true(tracker.is_physics_driven(target))
+	target.position.x = 2.0
+	tracker.record_process(target)
+	assert_false(tracker.is_physics_driven(target))
+
+func test_screen_space_aim_uses_interpolated_local_direction() -> void:
+	var from: CameramanCameraState = CameramanCameraState.create_default()
+	from.raw_position = Vector3.ZERO
+	from.reference_look_at = Vector3(0.0, 0.0, -10.0)
+	var to: CameramanCameraState = CameramanCameraState.create_default()
+	to.raw_position = Vector3.ZERO
+	to.raw_orientation = Quaternion(Vector3.UP, 0.35)
+	to.reference_look_at = to.raw_orientation * Vector3(1.0, 0.0, -10.0)
+	for weight in [0.0, 0.5, 1.0]:
+		var state: CameramanCameraState = CameramanCameraState.lerp(from, to, weight)
+		var local_direction: Vector3 = state.raw_orientation.inverse() * (
+			state.reference_look_at - state.raw_position
+		)
+		var from_screen: Vector2 = CameramanCameraState._screen_offset(
+			from,
+			from.reference_look_at
+		)
+		var to_screen: Vector2 = CameramanCameraState._screen_offset(to, to.reference_look_at)
+		var expected: Vector3 = CameramanCameraState._screen_direction(
+			from_screen.lerp(to_screen, weight),
+			state.lens
+		)
+		assert_almost_eq(local_direction.normalized(), expected, Vector3.ONE * 0.001)
+
+func test_cylindrical_hint_uses_reference_up_axis() -> void:
+	var from: CameramanCameraState = CameramanCameraState.create_default(Vector3(1.0, 0.0, 0.0))
+	from.reference_look_at = Vector3.ZERO
+	from.raw_position = Vector3(0.0, 0.0, 2.0)
+	from.blend_hint = CameramanCore.BlendHint.CYLINDRICAL_POSITION
+	var to: CameramanCameraState = CameramanCameraState.create_default(Vector3(1.0, 0.0, 0.0))
+	to.reference_look_at = Vector3.ZERO
+	to.raw_position = Vector3(0.0, 4.0, 0.0)
+	to.blend_hint = CameramanCore.BlendHint.CYLINDRICAL_POSITION
+	var result: CameramanCameraState = CameramanCameraState.lerp(from, to, 0.5)
+	assert_almost_eq(result.raw_position.x, 0.0, 0.001)

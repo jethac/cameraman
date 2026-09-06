@@ -39,18 +39,22 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 				_assigned_basis = target_transform.basis
 			desired_position += _assigned_basis * follow_offset
 		BindingMode.LOCK_TO_TARGET_WITH_WORLD_UP:
-			desired_rotation = _world_up_rotation(desired_rotation)
+			desired_rotation = _world_up_rotation(desired_rotation, state.reference_up, true)
 			desired_position += desired_rotation * follow_offset
 		BindingMode.LOCK_TO_TARGET_NO_ROLL:
-			desired_rotation = _world_up_rotation(desired_rotation)
+			desired_rotation = _world_up_rotation(desired_rotation, state.reference_up, false)
 			desired_position += desired_rotation * follow_offset
 		BindingMode.LOCK_TO_TARGET:
 			desired_position += desired_rotation * follow_offset
 		BindingMode.LAZY_FOLLOW:
 			var heading: Vector3 = (follow_target.global_position - state.raw_position)
-			heading.y = 0.0
+			heading = heading.slide(state.reference_up)
 			if heading.length_squared() > 0.000001:
-				var lazy_basis: Basis = Basis.looking_at(-heading.normalized(), Vector3.UP, false)
+				var lazy_basis: Basis = Basis.looking_at(
+					-heading.normalized(),
+					state.reference_up,
+					false
+				)
 				desired_position += lazy_basis * follow_offset
 	if not vcam.previous_state_is_valid:
 		state.raw_position = desired_position
@@ -69,10 +73,15 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 			)
 			var current_euler: Vector3 = state.raw_orientation.get_euler()
 			var desired_euler: Vector3 = desired_rotation.get_euler()
+			var angle_delta: Vector3 = Vector3(
+				wrapf(desired_euler.x - current_euler.x, -PI, PI),
+				wrapf(desired_euler.y - current_euler.y, -PI, PI),
+				wrapf(desired_euler.z - current_euler.z, -PI, PI)
+			)
 			state.raw_orientation = Quaternion.from_euler(Vector3(
-				lerpf(current_euler.x, desired_euler.x, rotation_weight_euler.x),
-				lerpf(current_euler.y, desired_euler.y, rotation_weight_euler.y),
-				lerpf(current_euler.z, desired_euler.z, rotation_weight_euler.z)
+				current_euler.x + angle_delta.x * rotation_weight_euler.x,
+				current_euler.y + angle_delta.y * rotation_weight_euler.y,
+				current_euler.z + angle_delta.z * rotation_weight_euler.z
 			))
 		else:
 			state.raw_orientation = desired_rotation
@@ -93,9 +102,10 @@ func get_max_damp_time() -> float:
 		CameramanDamper.max_damp_time(rotation_damping)
 	)
 
-func _world_up_rotation(rotation: Quaternion) -> Quaternion:
+func _world_up_rotation(rotation: Quaternion, up: Vector3, flatten: bool) -> Quaternion:
 	var forward: Vector3 = rotation * Vector3.FORWARD
-	forward = forward.slide(Vector3.UP).normalized()
+	if flatten:
+		forward = forward.slide(up).normalized()
 	if forward.length_squared() < 0.000001:
-		forward = Vector3.FORWARD
-	return Basis.looking_at(forward, Vector3.UP, false).get_rotation_quaternion()
+		forward = Vector3.FORWARD.slide(up).normalized()
+	return Basis.looking_at(forward, up, false).get_rotation_quaternion()

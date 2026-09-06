@@ -21,8 +21,20 @@ func is_valid() -> bool:
 func get_parent_mixer() -> Node:
 	return null
 
-func update_state(world_up: Vector3, delta: float) -> void:
-	blend.update_state(world_up, delta)
+func update_state(
+	world_up: Vector3,
+	delta: float,
+	update_callback: Callable = Callable()
+) -> void:
+	blend.update_state(world_up, delta, update_callback)
+
+func on_transition_from_camera(
+	from: Object,
+	world_up: Vector3,
+	delta: float
+) -> void:
+	if blend.cam_b != null and blend.cam_b.has_method("on_transition_from_camera"):
+		blend.cam_b.on_transition_from_camera(from, world_up, delta)
 
 func on_camera_activated(event: CameramanActivationEvent) -> void:
 	if blend.cam_b != null:

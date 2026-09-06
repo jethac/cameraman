@@ -50,7 +50,14 @@ func internal_update_state(world_up: Vector3, delta: float) -> void:
 		CameramanCore.Stage.NOISE
 	]:
 		for component in components:
-			if component.stage() == stage_value and component.is_valid():
+			if (
+				component.stage() == stage_value
+				and component.is_valid()
+				and not (
+					stage_value == CameramanCore.Stage.BODY
+					and component.body_applies_after_aim()
+				)
+			):
 				component.mutate_camera_state(state, delta)
 				invoke_post_pipeline_stage_callback(stage_value, state, delta)
 	for component in components:

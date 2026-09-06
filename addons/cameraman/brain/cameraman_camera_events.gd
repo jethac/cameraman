@@ -2,9 +2,9 @@ class_name CameramanCameraEvents
 extends Node
 
 signal camera_activated(event: CameramanActivationEvent)
-signal camera_deactivated(mixer: Node, camera: Node)
+signal camera_deactivated(mixer: Node, camera: Object)
 signal blend_created(params: CameramanBlendEvent)
-signal blend_finished(mixer: Node, camera: Node)
+signal blend_finished(mixer: Node, camera: Object)
 signal camera_cut(brain: CameramanBrain)
 
 @export var camera: CameramanVirtualCameraBase

@@ -2,9 +2,9 @@ class_name CameramanBrainEvents
 extends Node
 
 signal camera_activated(brain: CameramanBrain, incoming: Object, outgoing: Object)
-signal camera_deactivated(mixer: Node, camera: Node)
+signal camera_deactivated(mixer: Node, camera: Object)
 signal blend_created(params: CameramanBlendEvent)
-signal blend_finished(mixer: Node, camera: Node)
+signal blend_finished(mixer: Node, camera: Object)
 signal camera_cut(brain: CameramanBrain)
 
 @export var brain: CameramanBrain
@@ -35,10 +35,10 @@ func _on_blend_created(params: CameramanBlendEvent) -> void:
 	if params.origin == brain:
 		blend_created.emit(params)
 
-func _on_camera_deactivated(owner: Node, camera: Node) -> void:
+func _on_camera_deactivated(owner: Node, camera: Object) -> void:
 	if owner == brain:
 		camera_deactivated.emit(owner, camera)
 
-func _on_blend_finished(owner: Node, camera: Node) -> void:
+func _on_blend_finished(owner: Node, camera: Object) -> void:
 	if owner == brain:
 		blend_finished.emit(owner, camera)

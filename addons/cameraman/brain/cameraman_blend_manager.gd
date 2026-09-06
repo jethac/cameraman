@@ -4,6 +4,7 @@ extends RefCounted
 var active_blend: CameramanBlend
 var active_source: Object
 var _owner: Node
+var _blend_outgoing_event_source: Object
 
 func update_root_frame(
 	desired: Object,
@@ -22,6 +23,9 @@ func update_root_frame(
 	var from_source: Object = active_source
 	if active_blend != null and not active_blend.is_complete():
 		from_source = CameramanNestedBlendSource.new(active_blend)
+	var outgoing_event_source: Object = from_source
+	from_source = _freeze_if_needed(from_source)
+	_call_transition(desired, from_source, world_up, delta)
 	var definition: CameramanBlendDefinition = default_definition
 	if from_source != null:
 		definition = owner.get_blend_definition(from_source, desired, default_definition)
@@ -33,8 +37,11 @@ func update_root_frame(
 		)
 		desired.on_camera_activated(cut_event)
 		CameramanCore.get_events().emit_activation(cut_event)
+		if from_source != null:
+			CameramanCore.get_events().camera_deactivated.emit(owner, outgoing_event_source)
 		return true
 	active_blend = CameramanBlend.new(from_source, desired, definition)
+	_blend_outgoing_event_source = outgoing_event_source
 	if CameramanCore.get_custom_blender.is_valid():
 		var blender_value: Object = CameramanCore.get_custom_blender.call(from_source, desired) as Object
 		if blender_value is CameramanBlender:
@@ -49,16 +56,23 @@ func update_root_frame(
 	CameramanCore.get_events().emit_activation(activation_event)
 	return true
 
-func update(world_up: Vector3, delta: float) -> CameramanCameraState:
+func update(
+	world_up: Vector3,
+	delta: float,
+	update_callback: Callable = Callable()
+) -> CameramanCameraState:
 	if active_blend != null:
-		active_blend.update_state(world_up, delta)
+		active_blend.update_state(world_up, delta, update_callback)
 		var result: CameramanCameraState = active_blend.get_state()
 		if active_blend.is_complete():
+			var outgoing: Object = _blend_outgoing_event_source
 			CameramanCore.get_events().blend_finished.emit(_owner, active_blend.cam_b)
+			CameramanCore.get_events().camera_deactivated.emit(_owner, outgoing)
 			active_source = active_blend.cam_b
 			active_blend = null
+			_blend_outgoing_event_source = null
 		return result
-	_update_source(world_up, delta)
+	_update_source(world_up, delta, update_callback)
 	return active_source.get_state()
 
 func get_state() -> CameramanCameraState:
@@ -71,8 +85,32 @@ func get_state() -> CameramanCameraState:
 func is_live(camera: CameramanVirtualCameraBase) -> bool:
 	if active_source == camera:
 		return true
+	if active_source is CameramanNestedBlendSource and active_source.blend.uses(camera):
+		return true
 	return active_blend != null and active_blend.uses(camera)
 
-func _update_source(world_up: Vector3, delta: float) -> void:
+func _update_source(world_up: Vector3, delta: float, update_callback: Callable) -> void:
 	if active_source != null:
-		active_source.update_state(world_up, delta)
+		if active_source is CameramanNestedBlendSource:
+			active_source.update_state(world_up, delta, update_callback)
+		elif update_callback.is_valid() and active_source is Node3D:
+			update_callback.call(active_source, world_up, delta)
+		else:
+			active_source.update_state(world_up, delta)
+
+func _call_transition(
+	desired: Object,
+	from_source: Object,
+	world_up: Vector3,
+	delta: float
+) -> void:
+	if desired.has_method("on_transition_from_camera"):
+		desired.on_transition_from_camera(from_source, world_up, delta)
+
+func _freeze_if_needed(source: Object) -> Object:
+	if source == null or not source.has_method("get_state"):
+		return source
+	var state: CameramanCameraState = source.get_state()
+	if (state.blend_hint & CameramanCore.BlendHint.FREEZE_WHEN_BLENDING_OUT) != 0:
+		return CameramanFrozenSource.new(source)
+	return source

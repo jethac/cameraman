@@ -70,3 +70,76 @@ func test_noise_only_adds_corrections() -> void:
 	CameramanCore.current_time_override = -1.0
 	assert_almost_eq(state.raw_position, Vector3(3.0, 2.0, 1.0), Vector3.ONE * 0.001)
 	assert_gt(state.position_correction.length(), 0.0)
+
+func test_follow_binding_modes_converge() -> void:
+	for mode in [
+		CameramanFollow.BindingMode.LOCK_TO_TARGET_ON_ASSIGN,
+		CameramanFollow.BindingMode.LOCK_TO_TARGET_WITH_WORLD_UP,
+		CameramanFollow.BindingMode.LOCK_TO_TARGET_NO_ROLL,
+		CameramanFollow.BindingMode.LOCK_TO_TARGET,
+		CameramanFollow.BindingMode.WORLD_SPACE,
+		CameramanFollow.BindingMode.LAZY_FOLLOW
+	]:
+		var root: Node = Node.new()
+		var target: Node3D = Node3D.new()
+		target.position = Vector3(4.0, 0.0, 0.0)
+		target.rotation = Vector3(0.0, 0.4, 0.0)
+		var camera: CameramanCamera = CameramanCamera.new()
+		var follow: CameramanFollow = CameramanFollow.new()
+		follow.follow_offset = Vector3(0.0, 0.0, 2.0)
+		follow.binding_mode = mode
+		camera.set_follow(target)
+		camera.add_child(follow)
+		root.add_child(target)
+		root.add_child(camera)
+		add_child_autofree(root)
+		camera.update_state(Vector3.UP, 0.1)
+		if mode == CameramanFollow.BindingMode.LAZY_FOLLOW:
+			assert_almost_eq(
+				camera.get_state().raw_position.distance_to(target.global_position),
+				follow.follow_offset.length(),
+				0.001
+			)
+			assert_lt(
+				(camera.get_state().raw_position - target.global_position).dot(
+					target.global_basis * Vector3.FORWARD
+				),
+				0.0
+			)
+		else:
+			var expected: Vector3 = target.global_position
+			if mode == CameramanFollow.BindingMode.WORLD_SPACE:
+				expected += follow.follow_offset
+			elif mode == CameramanFollow.BindingMode.LOCK_TO_TARGET_WITH_WORLD_UP:
+				var forward: Vector3 = (target.global_basis * Vector3.FORWARD).slide(Vector3.UP).normalized()
+				expected += Basis.looking_at(forward, Vector3.UP, false) * follow.follow_offset
+			else:
+				expected += target.global_basis * follow.follow_offset
+			assert_almost_eq(camera.get_state().raw_position, expected, Vector3.ONE * 0.001)
+
+func test_rotation_composer_reaches_screen_composition() -> void:
+	var root: Node = Node.new()
+	var target: Node3D = Node3D.new()
+	target.position = Vector3(0.0, 0.0, -10.0)
+	var camera: CameramanCamera = CameramanCamera.new()
+	camera.set_look_at(target)
+	camera.use_separate_look_at = true
+	camera.look_at_target = target
+	var composer: CameramanRotationComposer = CameramanRotationComposer.new()
+	composer.composition.screen_position = Vector2(0.65, 0.5)
+	composer.composition.dead_zone_enabled = true
+	composer.composition.dead_zone_size = Vector2(0.03, 0.03)
+	composer.damping = Vector2(0.5, 0.5)
+	camera.add_child(composer)
+	root.add_child(target)
+	root.add_child(camera)
+	add_child_autofree(root)
+	for _index in 8:
+		camera.update_state(Vector3.UP, 0.1)
+	var screen_offset: Vector2 = CameramanComposerMath.project_screen_offset(
+		camera.get_state().raw_position,
+		camera.get_state().raw_orientation,
+		target.global_position,
+		camera.get_state().lens
+	)
+	assert_almost_eq(screen_offset.x, 0.15, 0.03)

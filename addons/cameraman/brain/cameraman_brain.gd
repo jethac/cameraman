@@ -33,7 +33,11 @@ var _frame: int = 0
 var _overrides: Dictionary = {}
 var _next_override_id: int = 1
 var _debug_label: Label
+var _debug_layer: CanvasLayer
 var _live_camera: CameramanVirtualCameraBase
+var _standby_index: int = 0
+var _update_tracker: CameramanUpdateTracker = CameramanUpdateTracker.new()
+var _update_token: int = 0
 
 func _init() -> void:
 	default_blend = CameramanBlendDefinition.new()
@@ -42,16 +46,22 @@ func _ready() -> void:
 	process_priority = 1000
 
 func _process(delta: float) -> void:
-	if update_method == UpdateMethod.PROCESS or update_method == UpdateMethod.SMART:
-		_update_frame(delta)
+	_record_target_transforms(false)
+	if update_method == UpdateMethod.PROCESS:
+		_update_frame(delta, Engine.get_process_frames())
+	elif update_method == UpdateMethod.SMART and not _desired_source_is_physics_driven():
+		_update_frame(delta, Engine.get_process_frames())
 
 func _physics_process(delta: float) -> void:
+	_record_target_transforms(true)
 	if update_method == UpdateMethod.PHYSICS:
-		_update_frame(delta)
+		_update_frame(delta, Engine.get_physics_frames())
+	elif update_method == UpdateMethod.SMART and _desired_source_is_physics_driven():
+		_update_frame(delta, Engine.get_physics_frames())
 
 func manual_update(delta: float = -1.0) -> void:
 	var step: float = delta if delta >= 0.0 else get_process_delta_time()
-	_update_frame(step)
+	_update_frame(step, _frame + 1)
 
 func is_live(camera: CameramanVirtualCameraBase) -> bool:
 	return _blend_manager.is_live(camera)
@@ -67,19 +77,32 @@ func set_camera_override(
 	camera_a: Object,
 	camera_b: Object,
 	weight_b: float,
-	delta: float
+	_delta: float
 ) -> int:
 	var id: int = identifier
 	if id < 0:
 		id = _next_override_id
 		_next_override_id += 1
-	_overrides[id] = {
-		"priority": priority_value,
-		"camera_a": camera_a,
-		"camera_b": camera_b,
-		"weight_b": clampf(weight_b, 0.0, 1.0),
-		"delta": delta
-	}
+	var weight: float = clampf(weight_b, 0.0, 1.0)
+	var entry: Dictionary = _overrides.get(id, {})
+	var blend: CameramanBlend = entry.get("blend") as CameramanBlend
+	if blend == null:
+		var definition: CameramanBlendDefinition = CameramanBlendDefinition.new()
+		definition.style = CameramanBlendDefinition.Style.LINEAR
+		definition.time = 1.0
+		blend = CameramanBlend.new(camera_a, camera_b, definition)
+		blend.manual_weight = true
+		entry["blend"] = blend
+		entry["source"] = CameramanNestedBlendSource.new(blend)
+	else:
+		blend.cam_a = camera_a
+		blend.cam_b = camera_b
+	blend.time_in_blend = weight
+	entry["priority"] = priority_value
+	entry["camera_a"] = camera_a
+	entry["camera_b"] = camera_b
+	entry["weight_b"] = weight
+	_overrides[id] = entry
 	return id
 
 func release_camera_override(identifier: int) -> void:
@@ -112,12 +135,14 @@ func get_blend_definition(
 		)
 	return fallback
 
-func _update_frame(raw_delta: float) -> void:
+func _update_frame(raw_delta: float, clock_frame: int) -> void:
 	_frame += 1
+	_update_token = clock_frame
 	var delta: float = CameramanCore.delta_time(raw_delta)
 	if ignore_time_scale and Engine.time_scale != 0.0:
 		delta /= Engine.time_scale
 	var world_up: Vector3 = default_world_up()
+	_update_aspect_ratio()
 	var desired: Object = _get_desired_source()
 	if desired == null:
 		return
@@ -132,11 +157,9 @@ func _update_frame(raw_delta: float) -> void:
 			CameramanCore.set_camera_live(_live_camera, true)
 		if _blend_manager.active_blend == null:
 			camera_cut.emit(self)
-			CameramanCore.get_events().camera_activated.emit(
-				CameramanActivationEvent.new(self, null, desired, true, world_up, delta)
-			)
-	current_camera_state = _blend_manager.update(world_up, delta)
+	current_camera_state = _blend_manager.update(world_up, delta, Callable(self, "_update_camera"))
 	_apply_state(current_camera_state)
+	_update_standby_cameras(world_up, delta)
 	CameramanCore.get_events().camera_updated.emit(self)
 	_update_debug_text()
 
@@ -150,13 +173,7 @@ func _get_desired_source() -> Object:
 		var camera_a: Object = override_entry["camera_a"] as Object
 		if camera_a == null:
 			return camera_b
-		var definition: CameramanBlendDefinition = CameramanBlendDefinition.new()
-		definition.time = maxf(float(override_entry["delta"]), 0.0)
-		return CameramanFrozenSource.new(
-			CameramanNestedBlendSource.new(
-				CameramanBlend.new(camera_a, camera_b, definition)
-			)
-		)
+		return override_entry["source"] as CameramanNestedBlendSource
 	if CameramanCore.solo_camera != null:
 		return CameramanCore.solo_camera
 	return CameramanCore.get_registry().get_top_camera(channel_mask, self)
@@ -195,16 +212,71 @@ func _apply_state(state: CameramanCameraState) -> void:
 		output.projection = Camera3D.PROJECTION_PERSPECTIVE
 		output.fov = state.lens.fov_degrees
 
+func _update_camera(camera: Node3D, world_up: Vector3, delta: float) -> void:
+	CameramanCore.update_virtual_camera(camera, world_up, delta, _update_token)
+
+func _update_aspect_ratio() -> void:
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	if viewport_size.y > 0.0:
+		CameramanCameraState.aspect_ratio = viewport_size.x / viewport_size.y
+
+func _record_target_transforms(physics: bool) -> void:
+	for camera in CameramanCore.get_registry().get_cameras():
+		var target: Node3D = camera.call("get_follow") as Node3D
+		if physics:
+			_update_tracker.record_physics(target)
+		else:
+			_update_tracker.record_process(target)
+
+func _desired_source_is_physics_driven() -> bool:
+	var source: Object = _get_desired_source()
+	if source is CameramanVirtualCameraBase:
+		return _update_tracker.is_physics_driven(source.get_follow())
+	if source is CameramanNestedBlendSource and source.blend.cam_b is CameramanVirtualCameraBase:
+		return _update_tracker.is_physics_driven(source.blend.cam_b.get_follow())
+	return false
+
+func _update_standby_cameras(world_up: Vector3, delta: float) -> void:
+	if _blend_manager.active_source == null:
+		return
+	var always: Array[Node3D] = []
+	var round_robin: Array[Node3D] = []
+	for camera in CameramanCore.get_registry().get_cameras():
+		if _blend_manager.is_live(camera):
+			continue
+		var virtual_camera: CameramanVirtualCameraBase = camera as CameramanVirtualCameraBase
+		if virtual_camera == null or (virtual_camera.output_channel & channel_mask) == 0:
+			continue
+		var parent_mixer: Node = virtual_camera.get_parent_mixer()
+		if parent_mixer != null and parent_mixer != self:
+			continue
+		if virtual_camera.standby_update == CameramanVirtualCameraBase.StandbyUpdate.ALWAYS:
+			always.append(camera)
+		elif virtual_camera.standby_update == CameramanVirtualCameraBase.StandbyUpdate.ROUND_ROBIN:
+			round_robin.append(camera)
+	for camera in always:
+		_update_camera(camera, world_up, delta)
+	if not round_robin.is_empty():
+		var camera: Node3D = round_robin[_standby_index % round_robin.size()]
+		_standby_index += 1
+		_update_camera(camera, world_up, delta)
+
 func _update_debug_text() -> void:
 	if not show_debug_text:
 		if _debug_label != null:
 			_debug_label.queue_free()
 			_debug_label = null
+		if _debug_layer != null:
+			_debug_layer.queue_free()
+			_debug_layer = null
 		return
 	if _debug_label == null:
+		_debug_layer = CanvasLayer.new()
+		_debug_layer.layer = 100
+		add_child(_debug_layer)
 		_debug_label = Label.new()
 		_debug_label.position = Vector2(12.0, 12.0)
-		add_child(_debug_label)
+		_debug_layer.add_child(_debug_label)
 	_debug_label.text = "Camera: %s\nBlend: %s" % [
 		active_virtual_camera.get_camera_name() if active_virtual_camera != null else "<none>",
 		active_blend.description() if active_blend != null else "<none>"

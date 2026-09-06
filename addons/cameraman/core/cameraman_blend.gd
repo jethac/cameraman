@@ -6,6 +6,7 @@ var cam_b: Object
 var curve: Curve
 var duration: float = 0.0
 var time_in_blend: float = 0.0
+var manual_weight: bool = false
 var custom_blender: CameramanBlender = CameramanBlender.new()
 var _state_a: CameramanCameraState
 var _state_b: CameramanCameraState
@@ -35,19 +36,22 @@ func is_valid() -> bool:
 	return cam_a != null and cam_b != null and cam_a.is_valid() and cam_b.is_valid()
 
 func uses(camera: Object) -> bool:
-	return cam_a == camera or cam_b == camera
+	return _source_uses(cam_a, camera) or _source_uses(cam_b, camera)
 
-func update_state(world_up: Vector3, delta: float) -> void:
+func update_state(
+	world_up: Vector3,
+	delta: float,
+	update_callback: Callable = Callable()
+) -> void:
 	if cam_a == null or cam_b == null:
 		return
-	if not _is_frozen(cam_a):
-		cam_a.update_state(world_up, delta)
-	if not _is_frozen(cam_b):
-		cam_b.update_state(world_up, delta)
+	_update_source(cam_a, world_up, delta, update_callback)
+	_update_source(cam_b, world_up, delta, update_callback)
 	_state_a = cam_a.get_state()
 	_state_b = cam_b.get_state()
 	_state = custom_blender.blend(_state_a, _state_b, blend_weight())
-	time_in_blend += maxf(delta, 0.0)
+	if not manual_weight:
+		time_in_blend += maxf(delta, 0.0)
 
 func get_state() -> CameramanCameraState:
 	if _state == null:
@@ -65,3 +69,25 @@ func _source_description(source: Object) -> String:
 
 func _is_frozen(source: Object) -> bool:
 	return source is CameramanFrozenSource
+
+func _update_source(
+	source: Object,
+	world_up: Vector3,
+	delta: float,
+	update_callback: Callable
+) -> void:
+	if _is_frozen(source):
+		return
+	if source is CameramanNestedBlendSource:
+		source.update_state(world_up, delta, update_callback)
+	elif update_callback.is_valid() and source is Node3D:
+		update_callback.call(source, world_up, delta)
+	else:
+		source.update_state(world_up, delta)
+
+func _source_uses(source: Object, camera: Object) -> bool:
+	if source == camera:
+		return true
+	if source is CameramanNestedBlendSource:
+		return source.blend.uses(camera)
+	return false

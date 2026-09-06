@@ -15,7 +15,7 @@ static func project_screen_offset(
 		)
 	var depth: float = maxf(-local.z, 0.001)
 	var half_height: float = tan(deg_to_rad(lens.fov_degrees) * 0.5)
-	var half_width: float = half_height * (16.0 / 9.0)
+	var half_width: float = half_height * CameramanCameraState.aspect_ratio
 	return Vector2(local.x / depth / half_width, local.y / depth / half_height)
 
 static func get_composition_error(
@@ -53,10 +53,15 @@ static func rotate_to_composition(
 	)
 	var desired: Vector2 = current + error * weight
 	var half_height: float = tan(deg_to_rad(lens.fov_degrees) * 0.5)
-	var half_width: float = half_height * (16.0 / 9.0)
+	var half_width: float = half_height * CameramanCameraState.aspect_ratio
 	var local_direction: Vector3 = Vector3(desired.x * half_width, desired.y * half_height, -1.0)
-	var world_direction: Vector3 = (camera_orientation * local_direction).normalized()
-	return Basis.looking_at(world_direction, Vector3.UP, false).get_rotation_quaternion()
+	var target_direction: Vector3 = (target - camera_position).normalized()
+	var target_basis: Quaternion = Basis.looking_at(
+		target_direction,
+		Vector3.UP,
+		false
+	).get_rotation_quaternion()
+	return (target_basis * Quaternion(local_direction, Vector3.FORWARD)).normalized()
 
 static func move_to_composition(
 	camera_position: Vector3,
@@ -78,5 +83,5 @@ static func move_to_composition(
 	var up: Vector3 = camera_orientation * Vector3.UP
 	var depth: float = maxf(camera_position.distance_to(target), 0.001)
 	var half_height: float = tan(deg_to_rad(lens.fov_degrees) * 0.5) * depth
-	var half_width: float = half_height * (16.0 / 9.0)
+	var half_width: float = half_height * CameramanCameraState.aspect_ratio
 	return right * error.x * half_width * weight.x + up * error.y * half_height * weight.y

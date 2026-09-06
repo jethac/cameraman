@@ -22,6 +22,7 @@ static var registry: CameramanRegistry
 static var events: CameramanEventBus
 static var impulse_manager: RefCounted
 static var _live_cameras: Dictionary = {}
+static var _update_token: int = 0
 
 static func get_registry() -> CameramanRegistry:
 	if registry == null:
@@ -63,3 +64,15 @@ static func find_potential_target_brain(camera: Node3D) -> Node:
 			return current
 		current = current.get_parent()
 	return null
+
+static func next_update_token() -> int:
+	_update_token += 1
+	return _update_token
+
+static func update_virtual_camera(
+	camera: Node3D,
+	world_up: Vector3,
+	delta: float,
+	frame: int
+) -> void:
+	get_registry().update_camera(camera, world_up, delta, frame)

@@ -11,7 +11,7 @@ func _apply_state(state: CameramanCameraState) -> void:
 	if pixel_perfect:
 		position = position.round()
 	output.global_position = position
-	output.rotation = state.lens.dutch_degrees + state.get_final_orientation().get_euler().z
+	output.rotation = deg_to_rad(state.lens.dutch_degrees) + state.get_final_orientation().get_euler().z
 	output.zoom = Vector2.ONE * (get_viewport().get_visible_rect().size.y / (
 		maxf(state.lens.orthographic_size * 2.0, 0.001)
 	))

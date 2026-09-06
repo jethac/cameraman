@@ -1,6 +1,8 @@
 class_name CameramanCameraState
 extends RefCounted
 
+static var aspect_ratio: float = 16.0 / 9.0
+
 var lens: CameramanLens = CameramanLens.new()
 var reference_up: Vector3 = Vector3.UP
 var reference_look_at: Vector3 = CameramanCore.NO_POINT
@@ -56,12 +58,23 @@ static func lerp(from: CameramanCameraState, to: CameramanCameraState, weight: f
 		var look_at_cyl: Vector3 = from.reference_look_at.lerp(to.reference_look_at, t)
 		var from_offset_cyl: Vector3 = from.raw_position - from.reference_look_at
 		var to_offset_cyl: Vector3 = to.raw_position - to.reference_look_at
-		var horizontal: Vector3 = Vector3(from_offset_cyl.x, 0.0, from_offset_cyl.z)
-		var target_horizontal: Vector3 = Vector3(to_offset_cyl.x, 0.0, to_offset_cyl.z)
-		var radial: Vector3 = horizontal.normalized().slerp(target_horizontal.normalized(), t).normalized()
-		var radius: float = lerpf(horizontal.length(), target_horizontal.length(), t)
-		position = look_at_cyl + radial * radius
-		position.y = lerpf(from.raw_position.y, to.raw_position.y, t)
+		var up: Vector3 = result.reference_up.normalized()
+		if up.length_squared() < 0.000001:
+			up = Vector3.UP
+		var from_up: float = from_offset_cyl.dot(up)
+		var to_up: float = to_offset_cyl.dot(up)
+		var from_radial: Vector3 = from_offset_cyl - up * from_up
+		var to_radial: Vector3 = to_offset_cyl - up * to_up
+		var radial: Vector3
+		if from_radial.length_squared() < 0.000001:
+			radial = to_radial.normalized()
+		elif to_radial.length_squared() < 0.000001:
+			radial = from_radial.normalized()
+		else:
+			radial = from_radial.normalized().slerp(to_radial.normalized(), t).normalized()
+		var radius: float = lerpf(from_radial.length(), to_radial.length(), t)
+		var up_offset: float = lerpf(from_up, to_up, t)
+		position = look_at_cyl + radial * radius + up * up_offset
 	result.raw_position = position
 	result.reference_look_at = _lerp_look_at(from, to, result.lens, position, t, hint)
 	var orientation: Quaternion = from.raw_orientation.slerp(to.raw_orientation, t).normalized()
@@ -124,14 +137,14 @@ static func _screen_offset(state: CameramanCameraState, target: Vector3) -> Vect
 		)
 	var depth: float = maxf(-local.z, 0.001)
 	var half_height: float = tan(deg_to_rad(state.lens.fov_degrees) * 0.5)
-	var half_width: float = half_height * (16.0 / 9.0)
+	var half_width: float = half_height * aspect_ratio
 	return Vector2(local.x / depth / half_width, local.y / depth / half_height)
 
 static func _screen_direction(screen: Vector2, lens: CameramanLens) -> Vector3:
 	if lens.is_orthographic():
 		return Vector3(screen.x, screen.y, -1.0).normalized()
 	var half_height: float = tan(deg_to_rad(lens.fov_degrees) * 0.5)
-	var half_width: float = half_height * (16.0 / 9.0)
+	var half_width: float = half_height * aspect_ratio
 	return Vector3(screen.x * half_width, screen.y * half_height, -1.0).normalized()
 
 static func _aim_with_screen_offset(
@@ -151,6 +164,6 @@ static func _aim_with_screen_offset(
 		return from.raw_orientation.slerp(to.raw_orientation, weight).normalized()
 	var target_basis: Basis = Basis.looking_at(direction, up, false)
 	var local_direction: Vector3 = _screen_direction(screen, lens)
-	var centered: Vector3 = Vector3(0.0, 0.0, -1.0)
-	var screen_rotation: Quaternion = Quaternion(centered, local_direction)
+	var forward: Vector3 = Vector3.FORWARD
+	var screen_rotation: Quaternion = Quaternion(local_direction, forward)
 	return (target_basis.get_rotation_quaternion() * screen_rotation).normalized()

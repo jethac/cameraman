@@ -38,6 +38,11 @@ func _enter_tree() -> void:
 	CameramanCore.get_registry().add(self)
 	_refresh_extensions()
 
+func _ready() -> void:
+	child_entered_tree.connect(_on_child_tree_changed)
+	child_exiting_tree.connect(_on_child_tree_changed)
+	_refresh_extensions()
+
 func _exit_tree() -> void:
 	CameramanCore.get_registry().remove(self)
 
@@ -72,7 +77,12 @@ func get_look_at_target_as_group() -> CameramanTargetGroup:
 func get_state() -> CameramanCameraState:
 	return _state
 
+func get_effective_priority() -> int:
+	return priority if priority_enabled else 0
+
 func update_state(world_up: Vector3, delta: float) -> void:
+	if delta < 0.0:
+		previous_state_is_valid = false
 	_last_world_up = world_up
 	_last_delta = delta
 	internal_update_state(world_up, delta)
@@ -122,7 +132,7 @@ func prioritize() -> void:
 		for camera_node in CameramanCore.get_registry().get_cameras():
 			var camera: CameramanVirtualCameraBase = camera_node as CameramanVirtualCameraBase
 			if camera != null and brain.call("is_live", camera):
-				maximum = maxi(maximum, camera.priority)
+				maximum = maxi(maximum, camera.get_effective_priority())
 	priority = maximum + 1
 	priority_enabled = true
 	CameramanCore.get_registry().mark_activated(self)
@@ -177,6 +187,9 @@ func _refresh_extensions() -> void:
 		var extension: CameramanExtension = child as CameramanExtension
 		if extension != null:
 			_extensions.append(extension)
+
+func _on_child_tree_changed(_child: Node) -> void:
+	_refresh_extensions()
 
 func _get_components() -> Array[CameramanComponent]:
 	var components: Array[CameramanComponent] = []
