@@ -39,10 +39,18 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 				_assigned_basis = target_transform.basis
 			desired_position += _assigned_basis * follow_offset
 		BindingMode.LOCK_TO_TARGET_WITH_WORLD_UP:
-			desired_rotation = _world_up_rotation(desired_rotation, state.reference_up, true)
+			desired_rotation = CameramanTargetTracker.get_reference_orientation(
+				state,
+				CameramanTargetTracker.BindingMode.LOCK_TO_TARGET_WITH_WORLD_UP,
+				follow_target
+			)
 			desired_position += desired_rotation * follow_offset
 		BindingMode.LOCK_TO_TARGET_NO_ROLL:
-			desired_rotation = _world_up_rotation(desired_rotation, state.reference_up, false)
+			desired_rotation = CameramanTargetTracker.get_reference_orientation(
+				state,
+				CameramanTargetTracker.BindingMode.LOCK_TO_TARGET_NO_ROLL,
+				follow_target
+			)
 			desired_position += desired_rotation * follow_offset
 		BindingMode.LOCK_TO_TARGET:
 			desired_position += desired_rotation * follow_offset

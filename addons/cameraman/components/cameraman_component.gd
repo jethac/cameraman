@@ -64,5 +64,5 @@ func force_camera_position(_position: Vector3, _rotation: Quaternion) -> void:
 func get_max_damp_time() -> float:
 	return 0.0
 
-func get_input_axes() -> Array[CameramanAxisDescriptor]:
+func get_input_axes() -> Array[Dictionary]:
 	return []
