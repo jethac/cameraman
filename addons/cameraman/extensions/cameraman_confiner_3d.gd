@@ -8,6 +8,7 @@ extends CameramanExtension
 var _cached_shape: Shape3D
 var _cached_faces: PackedVector3Array = PackedVector3Array()
 var _cached_planes: Array[Plane] = []
+var _connected_shape: Shape3D
 
 func post_pipeline_stage_callback(
 	camera: Node,
@@ -23,10 +24,16 @@ func post_pipeline_stage_callback(
 			if child is CollisionShape3D:
 				shape_node = child as CollisionShape3D
 				break
-	if shape_node == null or shape_node.shape == null:
+	var shape: Shape3D = shape_node.shape if shape_node != null else null
+	if shape != _connected_shape:
+		_disconnect_shape()
+		_connected_shape = shape
+		if _connected_shape != null and not _connected_shape.changed.is_connected(invalidate_cache):
+			_connected_shape.changed.connect(invalidate_cache)
+	if shape == null:
 		return
 	var local: Vector3 = shape_node.global_transform.affine_inverse() * state.raw_position
-	var corrected: Vector3 = _closest_point_inside(shape_node.shape, local)
+	var corrected: Vector3 = _closest_point_inside(shape, local)
 	var world_corrected: Vector3 = shape_node.global_transform * corrected
 	var correction: Vector3 = world_corrected - state.raw_position
 	var distance: float = correction.length()
@@ -41,6 +48,14 @@ func invalidate_cache() -> void:
 	_cached_shape = null
 	_cached_faces = PackedVector3Array()
 	_cached_planes = []
+
+func _exit_tree() -> void:
+	_disconnect_shape()
+
+func _disconnect_shape() -> void:
+	if _connected_shape != null and _connected_shape.changed.is_connected(invalidate_cache):
+		_connected_shape.changed.disconnect(invalidate_cache)
+	_connected_shape = null
 
 func _damping_weight(damp_time: float, delta: float, distance: float) -> float:
 	if distance <= slowing_distance or damp_time <= 0.0:
@@ -107,39 +122,141 @@ func _ensure_faces(shape: Shape3D) -> void:
 		_build_hull(convex.points)
 
 func _build_hull(points: PackedVector3Array) -> void:
-	var count: int = points.size()
-	for i in range(count):
-		for j in range(i + 1, count):
-			for k in range(j + 1, count):
-				var plane: Plane = Plane(points[i], points[j], points[k])
-				if plane.normal.is_zero_approx():
-					continue
-				var positive: bool = false
-				var negative: bool = false
-				for m in range(count):
-					if m == i or m == j or m == k:
-						continue
-					var side: float = plane.distance_to(points[m])
-					if side > 0.0001:
-						positive = true
-					elif side < -0.0001:
-						negative = true
-					if positive and negative:
-						break
-				if positive and negative:
-					continue
-				if positive:
-					plane = Plane(-plane.normal, -plane.d)
-				_cached_faces.append(points[i])
-				_cached_faces.append(points[j])
-				_cached_faces.append(points[k])
-				var duplicate: bool = false
-				for existing in _cached_planes:
-					if existing.normal.is_equal_approx(plane.normal) and is_equal_approx(existing.d, plane.d):
-						duplicate = true
-						break
-				if not duplicate:
-					_cached_planes.append(plane)
+	var unique: Array[Vector3] = []
+	for point in points:
+		var duplicate: bool = false
+		for existing in unique:
+			if existing.is_equal_approx(point):
+				duplicate = true
+				break
+		if not duplicate:
+			unique.append(point)
+	if unique.size() < 4:
+		return
+	var tetrahedron: Array[int] = _find_initial_tetrahedron(unique)
+	if tetrahedron.is_empty():
+		return
+	var interior: Vector3 = Vector3.ZERO
+	for index in tetrahedron:
+		interior += unique[index]
+	interior /= float(tetrahedron.size())
+	var faces: Array[Dictionary] = [
+		_orient_face(tetrahedron[0], tetrahedron[1], tetrahedron[2], unique, interior),
+		_orient_face(tetrahedron[0], tetrahedron[3], tetrahedron[1], unique, interior),
+		_orient_face(tetrahedron[0], tetrahedron[2], tetrahedron[3], unique, interior),
+		_orient_face(tetrahedron[1], tetrahedron[3], tetrahedron[2], unique, interior),
+	]
+	var initial_indices: Dictionary = {}
+	for index in tetrahedron:
+		initial_indices[index] = true
+	for point_index in range(unique.size()):
+		if initial_indices.has(point_index):
+			continue
+		var visible: Array[int] = []
+		var visible_lookup: Dictionary = {}
+		var edges: Dictionary = {}
+		for face_index in range(faces.size()):
+			var face: Dictionary = faces[face_index]
+			var plane: Plane = _face_plane(face, unique)
+			if plane.distance_to(unique[point_index]) > 0.00001:
+				visible.append(face_index)
+				visible_lookup[face_index] = true
+				_add_horizon_edge(edges, int(face["a"]), int(face["b"]))
+				_add_horizon_edge(edges, int(face["b"]), int(face["c"]))
+				_add_horizon_edge(edges, int(face["c"]), int(face["a"]))
+		if visible.is_empty():
+			continue
+		for face_index in range(faces.size() - 1, -1, -1):
+			if visible_lookup.has(face_index):
+				faces.remove_at(face_index)
+		for edge_key in edges:
+			var edge: Dictionary = edges[edge_key]
+			if int(edge["count"]) == 1:
+				faces.append(
+					_orient_face(
+						int(edge["a"]),
+						int(edge["b"]),
+						point_index,
+						unique,
+						interior
+					)
+				)
+	for face in faces:
+		_cached_faces.append(unique[int(face["a"])])
+		_cached_faces.append(unique[int(face["b"])])
+		_cached_faces.append(unique[int(face["c"])])
+		_cached_planes.append(_face_plane(face, unique))
+
+func _find_initial_tetrahedron(points: Array[Vector3]) -> Array[int]:
+	var first: int = 0
+	var second: int = 0
+	var longest_distance: float = 0.0
+	for i in range(points.size()):
+		for j in range(i + 1, points.size()):
+			var distance: float = points[i].distance_squared_to(points[j])
+			if distance > longest_distance:
+				longest_distance = distance
+				first = i
+				second = j
+	if longest_distance <= 0.00001:
+		return []
+	var line: Vector3 = points[second] - points[first]
+	var line_length_squared: float = line.length_squared()
+	var third: int = -1
+	var farthest_line_distance: float = 0.0
+	for i in range(points.size()):
+		if i == first or i == second:
+			continue
+		var offset: Vector3 = points[i] - points[first]
+		var line_distance: float = line.cross(offset).length_squared() / line_length_squared
+		if line_distance > farthest_line_distance:
+			farthest_line_distance = line_distance
+			third = i
+	if third < 0 or farthest_line_distance <= 0.00001:
+		return []
+	var base_plane: Plane = Plane(points[first], points[second], points[third])
+	var fourth: int = -1
+	var farthest_plane_distance: float = 0.0
+	for i in range(points.size()):
+		if i == first or i == second or i == third:
+			continue
+		var plane_distance: float = absf(base_plane.distance_to(points[i]))
+		if plane_distance > farthest_plane_distance:
+			farthest_plane_distance = plane_distance
+			fourth = i
+	if fourth < 0 or farthest_plane_distance <= 0.00001:
+		return []
+	return [first, second, third, fourth]
+
+func _orient_face(
+	a: int,
+	b: int,
+	c: int,
+	points: Array[Vector3],
+	interior: Vector3
+) -> Dictionary:
+	var face: Dictionary = {"a": a, "b": b, "c": c}
+	if _face_plane(face, points).distance_to(interior) > 0.0:
+		face = {"a": a, "b": c, "c": b}
+	return face
+
+func _face_plane(face: Dictionary, points: Array[Vector3]) -> Plane:
+	return Plane(
+		points[int(face["a"])],
+		points[int(face["b"])],
+		points[int(face["c"])]
+	)
+
+func _add_horizon_edge(edges: Dictionary, a: int, b: int) -> void:
+	var low: int = mini(a, b)
+	var high: int = maxi(a, b)
+	var key: String = "%d:%d" % [low, high]
+	if edges.has(key):
+		var edge: Dictionary = edges[key]
+		edge["count"] = int(edge["count"]) + 1
+		edges[key] = edge
+	else:
+		edges[key] = {"a": a, "b": b, "count": 1}
 
 func _inside_all_planes(point: Vector3) -> bool:
 	for plane in _cached_planes:

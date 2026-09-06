@@ -138,6 +138,67 @@ func test_confiner_3d_convex_hull_handles_coplanar_box_points() -> void:
 	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, outside, 0.1)
 	assert_almost_eq(outside.get_final_position(), Vector3(1.0, 0.0, 0.0), Vector3.ONE * 0.01)
 
+func test_confiner_3d_incremental_hull_handles_sphere_samples() -> void:
+	var camera: Node3D = Node3D.new()
+	add_child_autofree(camera)
+	var shape: CollisionShape3D = CollisionShape3D.new()
+	var convex: ConvexPolygonShape3D = ConvexPolygonShape3D.new()
+	var points: PackedVector3Array = PackedVector3Array()
+	for index in range(400):
+		var fraction: float = (float(index) + 0.5) / 400.0
+		var y: float = 1.0 - 2.0 * fraction
+		var radial: float = sqrt(1.0 - y * y)
+		var angle: float = float(index) * PI * (3.0 - sqrt(5.0))
+		points.append(
+			Vector3(cos(angle) * radial, y, sin(angle) * radial) * 3.0
+		)
+	convex.points = points
+	shape.shape = convex
+	camera.add_child(shape)
+	var extension: CameramanConfiner3D = CameramanConfiner3D.new()
+	autofree(extension)
+	var outside: CameramanCameraState = CameramanCameraState.create_default()
+	outside.raw_position = Vector3(5.0, 0.0, 0.0)
+	var start_msec: int = Time.get_ticks_msec()
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, outside, 0.1)
+	var elapsed_msec: int = Time.get_ticks_msec() - start_msec
+	assert_lt(elapsed_msec, 1000)
+	assert_almost_eq(outside.get_final_position().length(), 3.0, 0.15)
+	var inside: CameramanCameraState = CameramanCameraState.create_default()
+	inside.raw_position = Vector3.ONE
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, inside, 0.1)
+	assert_almost_eq(inside.get_final_position(), Vector3.ONE, Vector3.ONE * 0.001)
+
+func test_confiner_3d_invalidates_cache_when_shape_points_change() -> void:
+	var camera: Node3D = Node3D.new()
+	add_child_autofree(camera)
+	var shape: CollisionShape3D = CollisionShape3D.new()
+	var convex: ConvexPolygonShape3D = ConvexPolygonShape3D.new()
+	convex.points = PackedVector3Array([
+		Vector3(-2.0, -2.0, -2.0), Vector3(2.0, -2.0, -2.0),
+		Vector3(-2.0, 2.0, -2.0), Vector3(2.0, 2.0, -2.0),
+		Vector3(-2.0, -2.0, 2.0), Vector3(2.0, -2.0, 2.0),
+		Vector3(-2.0, 2.0, 2.0), Vector3(2.0, 2.0, 2.0),
+	])
+	shape.shape = convex
+	camera.add_child(shape)
+	var extension: CameramanConfiner3D = CameramanConfiner3D.new()
+	autofree(extension)
+	var first: CameramanCameraState = CameramanCameraState.create_default()
+	first.raw_position = Vector3(3.0, 0.0, 0.0)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, first, 0.1)
+	assert_almost_eq(first.get_final_position().x, 2.0, 0.01)
+	convex.points = PackedVector3Array([
+		Vector3(-1.0, -1.0, -1.0), Vector3(1.0, -1.0, -1.0),
+		Vector3(-1.0, 1.0, -1.0), Vector3(1.0, 1.0, -1.0),
+		Vector3(-1.0, -1.0, 1.0), Vector3(1.0, -1.0, 1.0),
+		Vector3(-1.0, 1.0, 1.0), Vector3(1.0, 1.0, 1.0),
+	])
+	var second: CameramanCameraState = CameramanCameraState.create_default()
+	second.raw_position = Vector3(3.0, 0.0, 0.0)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, second, 0.1)
+	assert_almost_eq(second.get_final_position().x, 1.0, 0.01)
+
 func test_confiner_3d_clamps_concave_cube_faces() -> void:
 	var camera: Node3D = Node3D.new()
 	add_child_autofree(camera)
@@ -427,6 +488,59 @@ func test_storyboard_world_space_fills_output_frustum() -> void:
 		output.global_position + output.global_basis * Vector3(0.0, 0.0, -2.0),
 		Vector3.ONE * 0.01
 	)
+
+func test_storyboard_world_layers_are_isolated() -> void:
+	var root: Node3D = Node3D.new()
+	var first_camera: CameramanCamera = CameramanCamera.new()
+	var second_camera: CameramanCamera = CameramanCamera.new()
+	var first: CameramanStoryboard = CameramanStoryboard.new()
+	var second: CameramanStoryboard = CameramanStoryboard.new()
+	first.world_render_layers = 2
+	second.world_render_layers = 4
+	first_camera.add_child(first)
+	second_camera.add_child(second)
+	root.add_child(first_camera)
+	root.add_child(second_camera)
+	add_child_autofree(root)
+	first._create_world_space()
+	second._create_world_space()
+	assert_eq((first.get_child(0) as MeshInstance3D).layers, 2)
+	assert_eq((second.get_child(0) as MeshInstance3D).layers, 4)
+	assert_ne(
+		(first.get_child(0) as MeshInstance3D).layers,
+		(second.get_child(0) as MeshInstance3D).layers
+	)
+
+func test_storyboard_world_space_updates_after_brain_same_frame() -> void:
+	var root: Node3D = Node3D.new()
+	var output: Camera3D = Camera3D.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.PROCESS
+	brain.default_blend.style = CameramanBlendDefinition.Style.CUT
+	var camera: CameramanCamera = CameramanCamera.new()
+	camera.priority_enabled = true
+	camera.priority = 1
+	camera.position = Vector3(1.0, 2.0, 3.0)
+	var storyboard: CameramanStoryboard = CameramanStoryboard.new()
+	storyboard.render_mode = CameramanStoryboard.RenderMode.WORLD_SPACE
+	storyboard.world_distance = 2.0
+	storyboard.image = ImageTexture.create_from_image(
+		Image.create(16, 16, false, Image.FORMAT_RGBA8)
+	)
+	camera.add_child(storyboard)
+	output.add_child(brain)
+	root.add_child(output)
+	root.add_child(camera)
+	add_child_autofree(root)
+	await get_tree().process_frame
+	camera.position = Vector3(7.0, 2.0, 3.0)
+	await get_tree().process_frame
+	var quad: MeshInstance3D = storyboard.get_child(0) as MeshInstance3D
+	var expected: Vector3 = (
+		output.global_position
+		+ output.global_basis * Vector3(0.0, 0.0, -storyboard.world_distance)
+	)
+	assert_almost_eq(quad.global_position, expected, Vector3.ONE * 0.001)
 
 func test_storyboard_switches_render_modes() -> void:
 	var root: Node3D = Node3D.new()

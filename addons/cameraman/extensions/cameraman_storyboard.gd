@@ -16,6 +16,8 @@ enum RenderMode { SCREEN_SPACE_OVERLAY, SCREEN_SPACE_CAMERA, WORLD_SPACE }
 @export_range(0.0, 1.0) var split_view: float = 1.0
 @export var render_mode: RenderMode = RenderMode.SCREEN_SPACE_OVERLAY
 @export var world_distance: float = 1.0
+## Set a distinct layer per output camera and match its cull_mask when several brains share a world.
+@export_flags_3d_render var world_render_layers: int = 1
 
 var _active_mode: int = -1
 var _layer: CanvasLayer
@@ -23,6 +25,10 @@ var _screen_container: Control
 var _texture_rect: TextureRect
 var _world_quad: MeshInstance3D
 var _world_material: StandardMaterial3D
+
+func _ready() -> void:
+	var brain: Node = CameramanCore.find_brain_for(get_parent())
+	process_priority = brain.process_priority + 1 if brain != null else 1001
 
 func _process(_delta: float) -> void:
 	var camera: Node = get_parent()
@@ -88,7 +94,7 @@ func _create_screen_space() -> void:
 
 func _create_world_space() -> void:
 	_world_quad = MeshInstance3D.new()
-	_world_quad.layers = 1
+	_world_quad.layers = world_render_layers
 	var quad: QuadMesh = QuadMesh.new()
 	_world_quad.mesh = quad
 	_world_material = StandardMaterial3D.new()
@@ -129,6 +135,7 @@ func _update_screen_space(visible_now: bool) -> void:
 func _update_world_space(_camera: Node, brain: Node, visible_now: bool) -> void:
 	if _world_quad == null:
 		return
+	_world_quad.layers = world_render_layers
 	var output: Camera3D
 	if brain != null and brain.has_method("get_output_camera"):
 		output = brain.call("get_output_camera") as Camera3D
