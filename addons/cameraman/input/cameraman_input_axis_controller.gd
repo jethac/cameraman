@@ -11,6 +11,10 @@ var _mouse_motion: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
 	synchronize_controllers()
+	call_deferred("synchronize_controllers")
+	var camera: Node = get_parent()
+	if camera != null:
+		camera.child_entered_tree.connect(_on_camera_child_entered_tree)
 
 func _process(delta: float) -> void:
 	if not enabled:
@@ -23,24 +27,33 @@ func _process(delta: float) -> void:
 		if axis_control == null or not axis_control.enabled or axis_control.axis == null:
 			continue
 		var input_value: float = axis_control.read_action()
+		var mouse_delta: float = 0.0
 		if axis_control.mouse_motion_axis == CameramanInputAxisControl.MouseMotionAxis.X:
-			input_value += _mouse_motion.x * axis_control.gain
+			mouse_delta = _mouse_motion.x * axis_control.gain
 		elif axis_control.mouse_motion_axis == CameramanInputAxisControl.MouseMotionAxis.Y:
-			input_value += _mouse_motion.y * axis_control.gain
+			mouse_delta = _mouse_motion.y * axis_control.gain
+		if not is_zero_approx(mouse_delta):
+			axis_control.axis.track_input_value(axis_control.axis.value + mouse_delta)
+			continue
 		var driven: float = axis_control.driver.update(
 			input_value,
 			step,
 			axis_control.accel_time,
 			axis_control.decel_time
 		)
-		axis_control.axis.track_input_value(axis_control.axis.value + driven * step)
-		axis_control.axis.do_recentering(step)
+		if not is_zero_approx(driven):
+			axis_control.axis.track_input_value(axis_control.axis.value + driven * step)
+		else:
+			axis_control.axis.do_recentering(step)
 	_mouse_motion = Vector2.ZERO
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	var motion: InputEventMouseMotion = event as InputEventMouseMotion
 	if motion != null:
 		_mouse_motion += motion.relative
+
+func _on_camera_child_entered_tree(_child: Node) -> void:
+	call_deferred("synchronize_controllers")
 
 func synchronize_controllers() -> void:
 	_controls.clear()

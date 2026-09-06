@@ -5,6 +5,7 @@ extends CharacterBody3D
 @export var acceleration: float = 12.0
 @export var jump_velocity: float = 6.0
 @export var mouse_sensitivity: float = 0.003
+@export var mouse_look_enabled: bool = true
 
 var _pitch: float = 0.0
 
@@ -39,6 +40,8 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not mouse_look_enabled:
+		return
 	var motion: InputEventMouseMotion = event as InputEventMouseMotion
 	if motion == null:
 		return

@@ -180,6 +180,7 @@ func test_deoccluder_pulls_camera_in_front_of_box() -> void:
 	state.raw_position = Vector3(0.0, 0.0, 10.0)
 	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, state, 0.1)
 	assert_lt(state.get_final_position().z, 10.0)
+	assert_lt(state.shot_quality, 0.1)
 
 func test_third_person_aim_uses_hit_point() -> void:
 	var root: Node3D = Node3D.new()

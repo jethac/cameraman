@@ -57,10 +57,9 @@ func _get_shrunk_polygon(camera: Node, half_window: Vector2) -> PackedVector2Arr
 		return PackedVector2Array()
 	if _cache_valid and _cached_window == half_window:
 		return _cached_polygon
-	var shrink: float = maxf(half_window.x, half_window.y)
 	var offset: Array[PackedVector2Array] = Geometry2D.offset_polygon(
 		source,
-		-shrink,
+		-half_window.x,
 		Geometry2D.JOIN_MITER
 	)
 	if offset.is_empty():

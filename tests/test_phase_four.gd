@@ -43,6 +43,31 @@ func test_clear_shot_selects_highest_quality_child() -> void:
 	brain.manual_update(0.1)
 	assert_eq(manager.live_child, second)
 
+func test_clear_shot_min_duration_allows_switch_after_hold() -> void:
+	var manager: CameramanClearShot = CameramanClearShot.new()
+	manager.min_duration = 0.5
+	manager.activate_after = 0.1
+	var first: CameramanCamera = CameramanCamera.new()
+	var second: CameramanCamera = CameramanCamera.new()
+	var first_quality: QualityExtension = QualityExtension.new()
+	var second_quality: QualityExtension = QualityExtension.new()
+	first_quality.quality = 0.2
+	second_quality.quality = 0.8
+	first.add_child(first_quality)
+	second.add_child(second_quality)
+	manager.add_child(first)
+	manager.add_child(second)
+	var scene: Dictionary = _manager_scene(manager)
+	var brain: CameramanBrain = scene.brain
+	brain.manual_update(0.1)
+	assert_eq(manager.live_child, second)
+	first_quality.quality = 0.9
+	second_quality.quality = 0.1
+	brain.manual_update(0.1)
+	assert_eq(manager.live_child, second)
+	brain.manual_update(0.5)
+	assert_eq(manager.live_child, first)
+
 func test_state_driven_switches_animation_player_with_delay() -> void:
 	var manager: CameramanStateDrivenCamera = CameramanStateDrivenCamera.new()
 	manager.priority_enabled = true

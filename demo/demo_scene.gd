@@ -26,15 +26,30 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_demo_time += delta
-	if _autopilot and _demo_time < 2.0:
-		Input.action_press("move_forward")
+	if _autopilot and (
+		_demo_time < (3.6 if demo_kind == "clear_shot" else 2.0)
+	):
+		if demo_kind == "clear_shot":
+			if _demo_time < 1.5:
+				Input.action_press("move_right")
+				Input.action_release("move_forward")
+			elif _demo_time < 2.4:
+				Input.action_release("move_right")
+				Input.action_press("move_forward")
+			else:
+				Input.action_release("move_forward")
+				Input.action_press("move_left")
+		else:
+			Input.action_press("move_forward")
 		if demo_kind == "third_person" or demo_kind == "free_look":
 			var motion: InputEventMouseMotion = InputEventMouseMotion.new()
 			motion.relative = Vector2(4.0, 0.0)
 			Input.parse_input_event(motion)
 	else:
 		Input.action_release("move_forward")
-	if demo_kind == "impulse" and fmod(_demo_time, 2.5) < delta and _impulse_source != null:
+		Input.action_release("move_left")
+		Input.action_release("move_right")
+	if demo_kind == "impulse" and fmod(_demo_time, 4.0) < delta and _impulse_source != null:
 		_impulse_source.generate_impulse()
 	if demo_kind == "state_driven" and _state_player != null:
 		_state_player.play("idle" if fmod(_demo_time, 6.0) < 3.0 else "run")
@@ -60,6 +75,7 @@ func _create_3d_demo() -> void:
 		return
 	_create_ground()
 	_player = _create_player()
+	_player.mouse_look_enabled = demo_kind == "third_person"
 	var output: Camera3D = Camera3D.new()
 	output.name = "OutputCamera"
 	add_child(output)
@@ -192,7 +208,7 @@ func _make_camera(camera_name: String, target: Node3D, dolly: bool = false) -> C
 		spline.position_units = CameramanSplineDolly.PositionUnits.NORMALIZED
 		spline.automatic_dolly.enabled = true
 		spline.automatic_dolly.mode = CameramanSplineAutoDolly.Mode.FIXED_SPEED
-		spline.automatic_dolly.speed = 0.045
+		spline.automatic_dolly.speed = 0.12
 		spline.angular_damping = 0.2
 		camera.add_child(spline)
 	elif demo_kind == "free_look":
@@ -312,11 +328,13 @@ func _create_clear_shot(target: Node3D) -> void:
 	add_child(manager)
 	var offsets: Array[Vector3] = [
 		Vector3(-7.0, 3.0, 6.0),
-		Vector3(7.0, 3.0, 6.0),
+		Vector3(9.0, 3.0, 9.0),
 		Vector3(0.0, 5.0, -7.0)
 	]
 	for index in offsets.size():
 		var child: CameramanCamera = _make_camera("ClearShot%d" % index, target)
+		child.priority_enabled = true
+		child.priority = offsets.size() - index
 		var follow: CameramanFollow = child.get_node("Follow") as CameramanFollow
 		follow.binding_mode = CameramanFollow.BindingMode.WORLD_SPACE
 		follow.follow_offset = offsets[index]
@@ -427,9 +445,9 @@ func _create_impulse_setup(camera: CameramanCamera) -> void:
 	_impulse_source.position = Vector3(0.0, 1.0, 0.0)
 	var definition: CameramanImpulseDefinition = CameramanImpulseDefinition.new()
 	definition.impulse_shape = CameramanImpulseDefinition.Shape.EXPLOSION
-	definition.impulse_duration = 1.0
+	definition.impulse_duration = 0.6
 	_impulse_source.impulse_definition = definition
-	_impulse_source.default_velocity = Vector3(0.0, -3.0, 0.0)
+	_impulse_source.default_velocity = Vector3(0.0, -0.6, 0.0)
 	add_child(_impulse_source)
 	var ball: RigidBody3D = RigidBody3D.new()
 	ball.name = "ImpulseBall"
@@ -449,7 +467,7 @@ func _create_impulse_setup(camera: CameramanCamera) -> void:
 	add_child(ball)
 	var collision_source: CameramanCollisionImpulseSource = CameramanCollisionImpulseSource.new()
 	collision_source.name = "CollisionImpulseSource"
-	collision_source.default_velocity = Vector3(0.0, -3.0, 0.0)
+	collision_source.default_velocity = Vector3(0.0, -0.6, 0.0)
 	collision_source.impulse_definition = definition
 	ball.add_child(collision_source)
 
@@ -462,13 +480,17 @@ func _create_split_screen() -> void:
 	player_b.name = "PlayerB"
 	player_b.position = Vector3(3.0, 1.0, 0.0)
 	var world: World3D = get_viewport().world_3d
+	var split_layer: CanvasLayer = CanvasLayer.new()
+	split_layer.name = "SplitScreenLayer"
+	add_child(split_layer)
 	var hbox: HBoxContainer = HBoxContainer.new()
 	hbox.name = "SplitScreen"
 	hbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(hbox)
+	split_layer.add_child(hbox)
 	for index in 2:
 		var container: SubViewportContainer = SubViewportContainer.new()
 		container.name = "SplitViewportContainer%d" % index
+		container.stretch = true
 		container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		hbox.add_child(container)
@@ -525,6 +547,9 @@ func _create_2d_demo() -> void:
 	player_shape.size = Vector2(32.0, 48.0)
 	player_collision.shape = player_shape
 	_platformer_player.add_child(player_collision)
+	_add_platform_boundary(level, Vector2(-20.0, 360.0), Vector2(40.0, 720.0))
+	_add_platform_boundary(level, Vector2(1300.0, 360.0), Vector2(40.0, 720.0))
+	_add_platform_boundary(level, Vector2(640.0, -20.0), Vector2(1320.0, 40.0))
 	var output: Camera2D = Camera2D.new()
 	output.name = "OutputCamera"
 	add_child(output)
@@ -552,6 +577,7 @@ func _create_2d_demo() -> void:
 	camera.add_child(position_composer)
 	var confiner: CameramanConfiner2D = CameramanConfiner2D.new()
 	confiner.name = "Confiner2D"
+	confiner.damping = Vector2.ONE * 0.2
 	camera.add_child(confiner)
 	_add_2d_bounds(level, confiner)
 	_platformer_player.camera_target = camera
@@ -574,15 +600,25 @@ func _add_platform(parent: Node2D, center: Vector2, size: Vector2, color: Color)
 	collision.shape = shape
 	body.add_child(collision)
 
+func _add_platform_boundary(parent: Node2D, center: Vector2, size: Vector2) -> void:
+	var body: StaticBody2D = StaticBody2D.new()
+	body.position = center
+	parent.add_child(body)
+	var collision: CollisionShape2D = CollisionShape2D.new()
+	var shape: RectangleShape2D = RectangleShape2D.new()
+	shape.size = size
+	collision.shape = shape
+	body.add_child(collision)
+
 func _add_2d_bounds(parent: Node2D, confiner: CameramanConfiner2D) -> void:
 	var bounds: CollisionPolygon2D = CollisionPolygon2D.new()
 	bounds.name = "LevelBounds"
 	bounds.polygon = PackedVector2Array([
-		Vector2(0.0, 0.0), Vector2(1280.0, 0.0),
-		Vector2(1280.0, 720.0), Vector2(0.0, 720.0)
+		Vector2(-500.0, -360.0), Vector2(1780.0, -360.0),
+		Vector2(1780.0, 1080.0), Vector2(-500.0, 1080.0)
 	])
 	parent.add_child(bounds)
-	confiner.bounding_shape = NodePath("../../Level/LevelBounds")
+	confiner.bounding_shape = NodePath("../Level/LevelBounds")
 
 func _add_hud() -> void:
 	var layer: CanvasLayer = CanvasLayer.new()
@@ -605,17 +641,18 @@ func _update_hud() -> void:
 	if _label == null:
 		return
 	var live_name: String = "<none>"
-	if _brain != null and _brain.active_virtual_camera != null:
-		live_name = _brain.active_virtual_camera.name
+	if _brain != null:
+		live_name = _brain.get_live_description()
 	var controls: String = "WASD move | Mouse/arrows look | Space jump/impulse | Esc menu"
 	var extra: String = ""
 	if demo_kind == "sequence" and _sequence_player != null:
 		extra = "\nSequence time: %.1fs" % _sequence_player.current_animation_position
 	if demo_kind == "state_driven" and _state_player != null:
 		extra = "\nState: %s" % _state_player.current_animation
-	_label.text = "%s\nLive camera: %s\n%s%s" % [
+	var live_line: String = "" if demo_kind == "split_screen" else "\nLive camera: %s" % live_name
+	_label.text = "%s%s\n%s%s" % [
 		demo_kind.replace("_", " ").capitalize(),
-		live_name,
+		live_line,
 		controls,
 		extra
 	]

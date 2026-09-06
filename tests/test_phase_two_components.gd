@@ -170,3 +170,44 @@ func test_input_axis_driver_accelerates_toward_target() -> void:
 	var second: float = driver.update(1.0, 0.1, 1.0, 1.0)
 	assert_gt(first, 0.0)
 	assert_gt(second, first)
+
+func test_input_controller_applies_mouse_motion_to_discovered_axis() -> void:
+	var root: Node = Node.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	var orbital: CameramanOrbitalFollow = CameramanOrbitalFollow.new()
+	var controller: CameramanInputAxisController = CameramanInputAxisController.new()
+	camera.add_child(orbital)
+	camera.add_child(controller)
+	root.add_child(camera)
+	add_child_autofree(root)
+	controller.synchronize_controllers()
+	var control: CameramanInputAxisControl = controller.get_controller("horizontal")
+	control.mouse_motion_axis = CameramanInputAxisControl.MouseMotionAxis.X
+	control.gain = 1.0
+	var motion: InputEventMouseMotion = InputEventMouseMotion.new()
+	motion.relative = Vector2(4.0, 0.0)
+	controller._input(motion)
+	controller._process(1.0 / 60.0)
+	assert_almost_eq(orbital.horizontal_axis.value, 4.0, 0.001)
+
+func test_spline_fixed_speed_advances_and_wraps_normalized_position() -> void:
+	var root: Node3D = Node3D.new()
+	var path: Path3D = Path3D.new()
+	var curve: Curve3D = Curve3D.new()
+	curve.add_point(Vector3.ZERO)
+	curve.add_point(Vector3(0.0, 0.0, -10.0))
+	path.curve = curve
+	var camera: CameramanCamera = CameramanCamera.new()
+	var spline: CameramanSplineDolly = CameramanSplineDolly.new()
+	spline.spline = path
+	spline.position_units = CameramanSplineDolly.PositionUnits.NORMALIZED
+	spline.automatic_dolly.enabled = true
+	spline.automatic_dolly.mode = CameramanSplineAutoDolly.Mode.FIXED_SPEED
+	spline.automatic_dolly.speed = 2.0
+	camera.add_child(spline)
+	root.add_child(path)
+	root.add_child(camera)
+	add_child_autofree(root)
+	camera.update_state(Vector3.UP, 0.1)
+	camera.update_state(Vector3.UP, 0.6)
+	assert_almost_eq(spline.camera_position, 0.4, 0.001)

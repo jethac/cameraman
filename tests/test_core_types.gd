@@ -12,6 +12,9 @@ func test_damper_reaches_ninety_nine_percent_at_damp_time() -> void:
 	var value: float = CameramanDamper.damp(1.0, 1.0, 1.0)
 	assert_gte(value, 0.99)
 
+func test_zero_damp_is_immediate() -> void:
+	assert_almost_eq(CameramanDamper.damp(1.0, 0.0, 0.1), 1.0, 0.001)
+
 func test_blend_curves_have_expected_endpoints() -> void:
 	for style in CameramanBlendDefinition.Style.values():
 		var definition: CameramanBlendDefinition = CameramanBlendDefinition.new()

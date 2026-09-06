@@ -13,6 +13,8 @@ func choose_current_camera(_world_up: Vector3, delta: float) -> CameramanVirtual
 	var children: Array[CameramanVirtualCameraBase] = get_child_cameras()
 	if children.is_empty():
 		return null
+	if live_child != null:
+		_selected_time += maxf(delta, 0.0)
 	var best: CameramanVirtualCameraBase = children[0]
 	for camera in children:
 		if camera.get_state().shot_quality > best.get_state().shot_quality:
@@ -26,7 +28,6 @@ func choose_current_camera(_world_up: Vector3, delta: float) -> CameramanVirtual
 		var index: int = randi_range(0, children.size() - 1)
 		best = children[index]
 	if best == live_child:
-		_selected_time += maxf(delta, 0.0)
 		_candidate = best
 		_candidate_time = 0.0
 		return best

@@ -62,7 +62,11 @@ func get_state() -> CameramanCameraState:
 	return _state
 
 func description() -> String:
-	return "%s -> %s" % [_source_description(cam_a), _source_description(cam_b)]
+	return "%s -> %s (%.0f%%)" % [
+		_source_description(cam_a),
+		_source_description(cam_b),
+		blend_weight() * 100.0
+	]
 
 func _source_description(source: Object) -> String:
 	return source.get_description() if source != null else "<none>"

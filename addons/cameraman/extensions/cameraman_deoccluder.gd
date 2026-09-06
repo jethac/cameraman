@@ -39,6 +39,7 @@ func post_pipeline_stage_callback(
 		end = start + (end - start).limit_length(distance_limit)
 	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(start, end)
 	query.collision_mask = collide_against
+	query.exclude = [target]
 	var hit: Dictionary = world_camera.get_world_3d().direct_space_state.intersect_ray(query)
 	_occluded = false
 	if not hit.is_empty():
@@ -62,6 +63,8 @@ func post_pipeline_stage_callback(
 	if shot_quality_enabled:
 		var distance: float = state.raw_position.distance_to(start)
 		var quality: float = inverse_lerp(optimal_distance.x, optimal_distance.y, distance)
+		if _occluded:
+			quality *= 0.05
 		state.shot_quality = clampf(quality * max_quality_boost, 0.0, 1.0)
 
 func is_occluded() -> bool:

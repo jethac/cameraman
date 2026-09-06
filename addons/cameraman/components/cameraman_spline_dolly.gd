@@ -59,7 +59,11 @@ func _get_distance(curve: Curve3D, length: float, delta: float) -> float:
 				spline.to_local(follow_target.global_position)
 			) + automatic_dolly.position_offset
 	if position_units == PositionUnits.NORMALIZED:
+		if automatic_dolly != null and automatic_dolly.enabled:
+			camera_position = fposmod(camera_position, 1.0)
 		return clampf(camera_position, 0.0, 1.0) * length
+	if automatic_dolly != null and automatic_dolly.enabled and length > 0.0:
+		camera_position = fposmod(camera_position, length)
 	return clampf(camera_position, 0.0, length)
 
 func _get_rotation(sample: Transform3D, state: CameramanCameraState) -> Quaternion:
