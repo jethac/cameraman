@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot
+        run: |
+          curl -L --fail --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip godot.zip
+          chmod +x Godot_v4.4.1-stable_linux.x86_64
+          sudo mv Godot_v4.4.1-stable_linux.x86_64 /usr/local/bin/godot
+      - name: Import project
+        run: godot --headless --import
+      - name: Run GUT
+        run: godot --headless -s addons/gut/gut_cmdln.gd -gexit
+      - name: Install gdtoolkit
+        run: python3 -m pip install gdtoolkit==4.5.0
+      - name: Run gdlint
+        run: gdlint addons/cameraman tests demo
