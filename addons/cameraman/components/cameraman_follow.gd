@@ -19,6 +19,8 @@ enum AngularDampingMode { EULER, QUATERNION }
 @export var quaternion_damping: float = 0.0
 
 var _assigned_basis: Basis
+var _assigned_target: Node3D
+var _assigned_captured: bool = false
 var _previous_position: Vector3
 var _previous_rotation: Quaternion = Quaternion.IDENTITY
 
@@ -26,6 +28,10 @@ func stage() -> CameramanCore.Stage:
 	return CameramanCore.Stage.BODY
 
 func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
+	if _assigned_target != follow_target:
+		_assigned_target = follow_target
+		_assigned_basis = Basis()
+		_assigned_captured = false
 	if follow_target == null:
 		return
 	var target_transform: Transform3D = follow_target.global_transform
@@ -35,8 +41,9 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 		BindingMode.WORLD_SPACE:
 			desired_position += follow_offset
 		BindingMode.LOCK_TO_TARGET_ON_ASSIGN:
-			if _assigned_basis == Basis():
+			if not _assigned_captured:
 				_assigned_basis = target_transform.basis
+				_assigned_captured = true
 			desired_position += _assigned_basis * follow_offset
 		BindingMode.LOCK_TO_TARGET_WITH_WORLD_UP:
 			desired_rotation = CameramanTargetTracker.get_reference_orientation(

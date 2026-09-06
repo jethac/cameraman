@@ -3,10 +3,23 @@ extends Resource
 
 enum Style { CUT, EASE_IN_OUT, EASE_IN, EASE_OUT, HARD_IN, HARD_OUT, LINEAR, CUSTOM }
 
-@export var style: Style = Style.EASE_IN_OUT
-@export var time: float = 2.0
-@export var custom_curve: Curve
+@export var style: Style:
+	get:
+		return _style
+	set(value):
+		_style = value
+		_cached_curve = null
 
+@export var time: float = 2.0
+@export var custom_curve: Curve:
+	get:
+		return _custom_curve
+	set(value):
+		_custom_curve = value
+		_cached_curve = null
+
+var _style: Style = Style.EASE_IN_OUT
+var _custom_curve: Curve
 var _cached_curve: Curve
 
 func blend_time() -> float:

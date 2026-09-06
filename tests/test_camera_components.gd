@@ -161,6 +161,27 @@ func test_follow_binding_modes_converge() -> void:
 				expected += target.global_basis * follow.follow_offset
 			assert_almost_eq(camera.get_state().raw_position, expected, Vector3.ONE * 0.001)
 
+func test_follow_on_assign_captures_identity_target_basis() -> void:
+	var root: Node = Node.new()
+	var target: Node3D = Node3D.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	var follow: CameramanFollow = CameramanFollow.new()
+	follow.binding_mode = CameramanFollow.BindingMode.LOCK_TO_TARGET_ON_ASSIGN
+	follow.follow_offset = Vector3(1.0, 0.0, 0.0)
+	camera.set_follow(target)
+	camera.add_child(follow)
+	root.add_child(target)
+	root.add_child(camera)
+	add_child_autofree(root)
+	camera.update_state(Vector3.UP, 0.1)
+	target.rotation.y = PI * 0.5
+	camera.update_state(Vector3.UP, 0.1)
+	assert_almost_eq(
+		camera.get_state().raw_position,
+		target.global_position + Vector3(1.0, 0.0, 0.0),
+		Vector3.ONE * 0.001
+	)
+
 func test_rotation_composer_reaches_screen_composition() -> void:
 	var root: Node = Node.new()
 	var target: Node3D = Node3D.new()

@@ -11,8 +11,14 @@ extends Node3D
 @export var secondary_noise_profile: CameramanNoiseProfile
 
 var _reaction_time: float = 0.0
+var _last_position_offset: Vector3 = Vector3.ZERO
+var _last_rotation_offset: Quaternion = Quaternion.IDENTITY
 
 func _process(delta: float) -> void:
+	global_position -= _last_position_offset
+	global_basis = (global_basis * Basis(_last_rotation_offset.inverse())).orthonormalized()
+	_last_position_offset = Vector3.ZERO
+	_last_rotation_offset = Quaternion.IDENTITY
 	_reaction_time = maxf(_reaction_time - delta, 0.0)
 	var result: Array[Variant] = CameramanCore.get_impulse_manager().get_impulse_at(
 		global_position,
@@ -24,14 +30,18 @@ func _process(delta: float) -> void:
 	var magnitude: float = position_signal.length()
 	if magnitude > 0.0:
 		_reaction_time = duration
-	global_position += position_signal * gain * amplitude_gain
-	global_basis = (global_basis * Basis(rotation_signal)).orthonormalized()
+	var position_offset: Vector3 = position_signal * gain * amplitude_gain
+	var rotation_offset: Quaternion = rotation_signal
 	if secondary_noise_profile != null and _reaction_time > 0.0:
 		var noise_time: float = (duration - _reaction_time) * frequency_gain
-		global_position += secondary_noise_profile.evaluate_position(noise_time) * magnitude * amplitude_gain
-		global_basis = (
-			global_basis
-			* Basis(Quaternion.from_euler(
+		position_offset += secondary_noise_profile.evaluate_position(noise_time) * magnitude * amplitude_gain
+		rotation_offset = (
+			rotation_offset
+			* Quaternion.from_euler(
 				secondary_noise_profile.evaluate_orientation(noise_time) * magnitude * amplitude_gain
-			))
-		).orthonormalized()
+			)
+		).normalized()
+	global_position += position_offset
+	global_basis = (global_basis * Basis(rotation_offset)).orthonormalized()
+	_last_position_offset = position_offset
+	_last_rotation_offset = rotation_offset

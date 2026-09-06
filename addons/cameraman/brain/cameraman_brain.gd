@@ -176,11 +176,13 @@ func _update_frame(raw_delta: float, clock_frame: int) -> void:
 func _get_desired_source() -> Object:
 	var override_entry: Dictionary = _get_top_override()
 	if not override_entry.is_empty():
+		var camera_a: Object = override_entry["camera_a"] as Object
 		var camera_b: Object = override_entry["camera_b"] as Object
 		var weight_b: float = float(override_entry["weight_b"])
-		if weight_b >= 1.0 or camera_b == null:
+		if camera_b == null:
+			return camera_a
+		if weight_b >= 1.0:
 			return camera_b
-		var camera_a: Object = override_entry["camera_a"] as Object
 		if camera_a == null:
 			return camera_b
 		return override_entry["source"] as CameramanNestedBlendSource

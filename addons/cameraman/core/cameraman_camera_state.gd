@@ -132,8 +132,8 @@ static func _screen_offset(state: CameramanCameraState, target: Vector3) -> Vect
 	var local: Vector3 = state.raw_orientation.inverse() * (target - state.raw_position)
 	if state.lens.is_orthographic():
 		return Vector2(
-			local.x / maxf(state.lens.orthographic_size * 0.5, 0.001),
-			local.y / maxf(state.lens.orthographic_size * 0.5, 0.001)
+			local.x / maxf(state.lens.orthographic_size * aspect_ratio, 0.001),
+			local.y / maxf(state.lens.orthographic_size, 0.001)
 		)
 	var depth: float = maxf(-local.z, 0.001)
 	var half_height: float = tan(deg_to_rad(state.lens.fov_degrees) * 0.5)
@@ -142,7 +142,7 @@ static func _screen_offset(state: CameramanCameraState, target: Vector3) -> Vect
 
 static func _screen_direction(screen: Vector2, lens: CameramanLens) -> Vector3:
 	if lens.is_orthographic():
-		return Vector3(screen.x, screen.y, -1.0).normalized()
+		return Vector3(screen.x * aspect_ratio, screen.y, -1.0).normalized()
 	var half_height: float = tan(deg_to_rad(lens.fov_degrees) * 0.5)
 	var half_width: float = half_height * aspect_ratio
 	return Vector3(screen.x * half_width, screen.y * half_height, -1.0).normalized()

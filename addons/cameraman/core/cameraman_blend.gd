@@ -49,9 +49,9 @@ func update_state(
 	_update_source(cam_b, world_up, delta, update_callback)
 	_state_a = cam_a.get_state()
 	_state_b = cam_b.get_state()
-	_state = custom_blender.blend(_state_a, _state_b, blend_weight())
 	if not manual_weight:
 		time_in_blend += maxf(delta, 0.0)
+	_state = custom_blender.blend(_state_a, _state_b, blend_weight())
 
 func get_state() -> CameramanCameraState:
 	if _state == null:

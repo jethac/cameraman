@@ -44,6 +44,29 @@ func test_third_person_rig_follows_target_rotation() -> void:
 	assert_almost_eq(rig[1], target.global_position + target.global_basis * component.shoulder_offset, Vector3.ONE * 0.001)
 	assert_almost_eq(rig[2], rig[1] + target.global_basis * Vector3.UP, Vector3.ONE * 0.001)
 
+func test_orbital_on_assign_captures_identity_target_basis() -> void:
+	var root: Node = Node.new()
+	var target: Node3D = Node3D.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	var orbital: CameramanOrbitalFollow = CameramanOrbitalFollow.new()
+	orbital.binding_mode = CameramanTargetTracker.BindingMode.LOCK_TO_TARGET_ON_ASSIGN
+	orbital.horizontal_axis.value = 0.0
+	orbital.vertical_axis.value = 0.0
+	orbital.radial_axis.value = 5.0
+	camera.set_follow(target)
+	camera.add_child(orbital)
+	root.add_child(target)
+	root.add_child(camera)
+	add_child_autofree(root)
+	camera.update_state(Vector3.UP, 0.1)
+	target.rotation.y = PI * 0.5
+	camera.update_state(Vector3.UP, 0.1)
+	assert_almost_eq(
+		camera.get_state().raw_position,
+		target.global_position + Vector3(0.0, 0.0, 5.0),
+		Vector3.ONE * 0.001
+	)
+
 func test_position_composer_moves_target_into_dead_zone() -> void:
 	var root: Node = Node.new()
 	var target: Node3D = Node3D.new()

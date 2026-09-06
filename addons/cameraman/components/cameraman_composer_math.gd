@@ -10,8 +10,8 @@ static func project_screen_offset(
 	var local: Vector3 = camera_orientation.inverse() * (target - camera_position)
 	if lens.is_orthographic():
 		return Vector2(
-			local.x / maxf(lens.orthographic_size * 0.5, 0.001),
-			local.y / maxf(lens.orthographic_size * 0.5, 0.001)
+			local.x / maxf(lens.orthographic_size * CameramanCameraState.aspect_ratio, 0.001),
+			local.y / maxf(lens.orthographic_size, 0.001)
 		)
 	var depth: float = maxf(-local.z, 0.001)
 	var half_height: float = tan(deg_to_rad(lens.fov_degrees) * 0.5)

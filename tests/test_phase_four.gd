@@ -105,6 +105,43 @@ func test_state_driven_switches_animation_player_with_delay() -> void:
 	brain.manual_update(0.5)
 	assert_eq(manager.live_child, run)
 
+func test_state_driven_uses_live_instruction_min_duration() -> void:
+	var manager: CameramanStateDrivenCamera = CameramanStateDrivenCamera.new()
+	manager.priority_enabled = true
+	manager.priority = 10
+	var idle: CameramanCamera = CameramanCamera.new()
+	var run: CameramanCamera = CameramanCamera.new()
+	idle.name = "IdleCamera"
+	run.name = "RunCamera"
+	manager.add_child(idle)
+	manager.add_child(run)
+	var player: AnimationPlayer = AnimationPlayer.new()
+	player.name = "AnimationPlayer"
+	var library: AnimationLibrary = AnimationLibrary.new()
+	library.add_animation("Idle", Animation.new())
+	library.add_animation("Run", Animation.new())
+	player.add_animation_library("", library)
+	manager.add_child(player)
+	var idle_instruction: CameramanStateDrivenInstruction = CameramanStateDrivenInstruction.new()
+	idle_instruction.state_name = &"Idle"
+	idle_instruction.camera = NodePath("IdleCamera")
+	idle_instruction.min_duration = 2.0
+	var run_instruction: CameramanStateDrivenInstruction = CameramanStateDrivenInstruction.new()
+	run_instruction.state_name = &"Run"
+	run_instruction.camera = NodePath("RunCamera")
+	run_instruction.activate_after = 0.0
+	run_instruction.min_duration = 0.0
+	manager.instructions = [idle_instruction, run_instruction]
+	manager.animation_player_path = NodePath("AnimationPlayer")
+	var scene: Dictionary = _manager_scene(manager)
+	var brain: CameramanBrain = scene.brain
+	player.play("Idle")
+	brain.manual_update(0.1)
+	assert_eq(manager.live_child, idle)
+	player.play("Run")
+	brain.manual_update(0.1)
+	assert_eq(manager.live_child, idle)
+
 func test_sequencer_advances_holds_and_loops() -> void:
 	var manager: CameramanSequencerCamera = CameramanSequencerCamera.new()
 	manager.priority_enabled = true

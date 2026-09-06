@@ -16,8 +16,8 @@ func post_pipeline_stage_callback(
 		return
 	var size: Vector2 = viewport.get_visible_rect().size
 	var pixel_size: Vector2 = Vector2(
-		state.lens.orthographic_size * CameramanCameraState.aspect_ratio / maxf(size.x, 1.0),
-		state.lens.orthographic_size / maxf(size.y, 1.0)
+		state.lens.orthographic_size * 2.0 * CameramanCameraState.aspect_ratio / maxf(size.x, 1.0),
+		state.lens.orthographic_size * 2.0 / maxf(size.y, 1.0)
 	)
 	var final_position: Vector3 = state.get_final_position()
 	var rounded: Vector3 = final_position

@@ -62,6 +62,18 @@ func test_brain_override_precedes_priority() -> void:
 	brain.manual_update(0.1)
 	assert_eq(brain.active_virtual_camera, override_camera)
 
+func test_single_camera_override_selects_camera_a() -> void:
+	var root: Node = Node.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.MANUAL
+	var camera_a: CameramanCamera = CameramanCamera.new()
+	root.add_child(brain)
+	root.add_child(camera_a)
+	add_child_autofree(root)
+	brain.set_camera_override(-1, 100, camera_a, null, 0.0, 0.0)
+	brain.manual_update(0.1)
+	assert_eq(brain.active_virtual_camera, camera_a)
+
 func test_blend_interruption_keeps_current_position_continuous() -> void:
 	var root: Node = Node.new()
 	var output: Camera3D = Camera3D.new()

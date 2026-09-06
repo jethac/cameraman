@@ -8,13 +8,17 @@ extends CameramanCameraManagerBase
 var _candidate: CameramanVirtualCameraBase
 var _candidate_time: float = 0.0
 var _selected_time: float = 0.0
+var _live_instruction: CameramanStateDrivenInstruction
 
 func choose_current_camera(_world_up: Vector3, delta: float) -> CameramanVirtualCameraBase:
 	var state_name: String = _get_state_name()
 	var instruction: CameramanStateDrivenInstruction = _find_instruction(state_name)
 	var desired: CameramanVirtualCameraBase = _resolve_instruction(instruction)
 	if desired == null:
-		return super.choose_current_camera(_world_up, delta)
+		desired = super.choose_current_camera(_world_up, delta)
+		instruction = null
+	if desired == null:
+		return null
 	if desired == live_child:
 		_selected_time += maxf(delta, 0.0)
 		_candidate = desired
@@ -26,9 +30,10 @@ func choose_current_camera(_world_up: Vector3, delta: float) -> CameramanVirtual
 	else:
 		_candidate_time += maxf(delta, 0.0)
 	var activate_after: float = instruction.activate_after if instruction != null else 0.0
-	var minimum: float = instruction.min_duration if instruction != null else 0.0
+	var minimum: float = _live_instruction.min_duration if _live_instruction != null else 0.0
 	if live_child == null or (_candidate_time >= activate_after and _selected_time >= minimum):
 		_selected_time = 0.0
+		_live_instruction = instruction
 		return desired
 	return live_child
 

@@ -30,6 +30,10 @@ enum RecenteringTarget {
 @export var position_damping: Vector3 = Vector3.ZERO
 @export var recentering_target: RecenteringTarget = RecenteringTarget.AXIS_CENTER
 
+var _assigned_target: Node3D
+var _assigned_reference: Quaternion = Quaternion.IDENTITY
+var _assigned_captured: bool = false
+
 func _init() -> void:
 	horizontal_axis = CameramanInputAxis.new()
 	horizontal_axis.range = Vector2(-180.0, 180.0)
@@ -45,13 +49,20 @@ func stage() -> CameramanCore.Stage:
 
 func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	var target: Node3D = follow_target
+	if _assigned_target != target:
+		_assigned_target = target
+		_assigned_reference = Quaternion.IDENTITY
+		_assigned_captured = false
 	if target == null:
 		return
-	var reference: Quaternion = CameramanTargetTracker.get_reference_orientation(
-		state,
-		binding_mode,
-		target
-	)
+	var reference: Quaternion
+	if binding_mode == CameramanTargetTracker.BindingMode.LOCK_TO_TARGET_ON_ASSIGN:
+		if not _assigned_captured:
+			_assigned_reference = target.global_basis.get_rotation_quaternion()
+			_assigned_captured = true
+		reference = _assigned_reference
+	else:
+		reference = CameramanTargetTracker.get_reference_orientation(state, binding_mode, target)
 	_apply_recentering(state, target, delta, reference)
 	var point: Vector3 = get_camera_point()
 	var desired: Vector3 = target.global_position + target_offset + reference * point

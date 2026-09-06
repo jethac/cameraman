@@ -227,6 +227,49 @@ func test_listener_applies_nonzero_impulse_correction() -> void:
 	manager.clear()
 	CameramanCore.current_time_override = -1.0
 
+func test_external_impulse_listener_returns_to_baseline() -> void:
+	var manager: CameramanImpulseManager = CameramanCore.get_impulse_manager()
+	manager.clear()
+	CameramanCore.current_time_override = 0.0
+	var event: CameramanImpulseEvent = CameramanImpulseEvent.new()
+	event.position = Vector3.ZERO
+	event.signal_velocity = Vector3.ONE
+	event.duration = 1.0
+	event.channel = 1
+	event.start_time = 0.0
+	var root: Node3D = Node3D.new()
+	var listener: CameramanExternalImpulseListener = CameramanExternalImpulseListener.new()
+	listener.position = Vector3(3.0, 0.0, 0.0)
+	root.add_child(listener)
+	add_child_autofree(root)
+	var baseline: Vector3 = listener.global_position
+	manager.add_impulse_event(event)
+	listener._process(0.1)
+	assert_gt(listener.global_position.distance_to(baseline), 0.0)
+	CameramanCore.current_time_override = 2.0
+	listener._process(1.9)
+	assert_almost_eq(listener.global_position, baseline, Vector3.ONE * 0.001)
+	manager.clear()
+	CameramanCore.current_time_override = -1.0
+
+func test_pixel_perfect_uses_full_orthographic_display() -> void:
+	var camera: Node3D = Node3D.new()
+	var extension: CameramanPixelPerfect = CameramanPixelPerfect.new()
+	var state: CameramanCameraState = CameramanCameraState.create_default()
+	state.lens.mode_override = CameramanLens.Mode.ORTHOGRAPHIC
+	state.lens.orthographic_size = 5.0
+	state.raw_position = Vector3(0.012, 0.012, 0.0)
+	camera.add_child(extension)
+	add_child_autofree(camera)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.FINALIZE, state, 0.1)
+	var viewport_size: Vector2 = camera.get_viewport().get_visible_rect().size
+	var pixel_size: Vector2 = Vector2(
+		state.lens.orthographic_size * 2.0 * CameramanCameraState.aspect_ratio / viewport_size.x,
+		state.lens.orthographic_size * 2.0 / viewport_size.y
+	)
+	assert_almost_eq(state.raw_position.x, snappedf(0.012, pixel_size.x), 0.0001)
+	assert_almost_eq(state.raw_position.y, snappedf(0.012, pixel_size.y), 0.0001)
+
 func test_storyboard_overlay_handlers_create_and_hide() -> void:
 	var camera: Node3D = Node3D.new()
 	add_child_autofree(camera)
