@@ -1,3 +1,4 @@
+@tool
 class_name CameramanSplineCart
 extends Node3D
 
@@ -9,6 +10,8 @@ enum PositionUnits { DISTANCE, NORMALIZED, KNOT }
 @export var speed: float = 0.0
 
 func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	if spline == null or spline.curve == null:
 		return
 	path_position += speed * delta

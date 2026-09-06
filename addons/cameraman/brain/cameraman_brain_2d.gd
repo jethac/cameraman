@@ -1,9 +1,12 @@
+@tool
 class_name CameramanBrain2D
 extends CameramanBrain
 
 @export var pixel_perfect: bool = false
 
 func _apply_state(state: CameramanCameraState) -> void:
+	if Engine.is_editor_hint():
+		return
 	var output: Camera2D = _get_output_camera_2d()
 	if output == null:
 		return
@@ -12,7 +15,10 @@ func _apply_state(state: CameramanCameraState) -> void:
 		position = position.round()
 	output.global_position = position
 	output.rotation = deg_to_rad(state.lens.dutch_degrees) + state.get_final_orientation().get_euler().z
-	output.zoom = Vector2.ONE * (get_viewport().get_visible_rect().size.y / (
+	var viewport: Viewport = get_viewport()
+	if viewport == null:
+		return
+	output.zoom = Vector2.ONE * (viewport.get_visible_rect().size.y / (
 		maxf(state.lens.orthographic_size * 2.0, 0.001)
 	))
 

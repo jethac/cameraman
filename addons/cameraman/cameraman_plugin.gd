@@ -129,17 +129,27 @@ func _exit_tree() -> void:
 	if _gizmo != null:
 		remove_node_3d_gizmo_plugin(_gizmo)
 
+func _handles(object: Object) -> bool:
+	return object is CameramanCamera or object is CameramanComponent
+
+func _edit(_object: Object) -> void:
+	update_overlays()
+
 func _forward_3d_draw_over_viewport(overlay: Control) -> void:
 	var selected: Node = _selected_node()
+	if selected == null:
+		return
 	var camera: CameramanCamera = selected as CameramanCamera
-	if camera == null:
+	if camera == null and selected != null:
 		camera = selected.get_parent() as CameramanCamera
 	if camera == null:
 		return
-	var composer: CameramanRotationComposer = camera.get_node_or_null("RotationComposer") as CameramanRotationComposer
-	if composer == null:
-		composer = camera.find_child("CameramanRotationComposer", true, false) as CameramanRotationComposer
-	if composer == null:
+	var composer: CameramanRotationComposer
+	for child in camera.get_children():
+		if child is CameramanRotationComposer:
+			composer = child as CameramanRotationComposer
+			break
+	if composer == null or composer.composition == null:
 		return
 	var zone: Vector2 = composer.composition.dead_zone_size * overlay.size
 	var center: Vector2 = composer.composition.screen_position * overlay.size
@@ -150,51 +160,87 @@ func _selected_node() -> Node:
 	var selected: Array[Node] = selection.get_selected_nodes()
 	return selected[0] if not selected.is_empty() else get_editor_interface().get_edited_scene_root()
 
-func _add_node(parent: Node, node: Node) -> void:
+func _selected_parent() -> Node:
+	var parent: Node = _selected_node()
+	if parent == null:
+		push_warning("Cameraman preset requires an edited scene root or selected parent.")
+	return parent
+
+func _commit_nodes(action_name: String, parent: Node, nodes: Array[Node]) -> void:
+	if parent == null or nodes.is_empty():
+		return
 	var undo: EditorUndoRedoManager = get_undo_redo()
-	undo.create_action("Create %s" % node.name)
-	undo.add_do_method(parent, "add_child", node)
-	undo.add_do_method(node, "set_owner", get_editor_interface().get_edited_scene_root())
-	undo.add_undo_method(parent, "remove_child", node)
+	undo.create_action(action_name)
+	for node in nodes:
+		undo.add_do_method(parent, "add_child", node)
+		undo.add_do_method(self, "_own_recursive", node)
+		undo.add_do_reference(node)
+		undo.add_undo_method(parent, "remove_child", node)
 	undo.commit_action()
+
+func _own_recursive(node: Node) -> void:
+	var scene_root: Node = get_editor_interface().get_edited_scene_root()
+	if scene_root == null:
+		return
+	if node != scene_root:
+		node.owner = scene_root
+	for child in node.get_children():
+		_own_recursive(child)
 
 func _create_brain() -> void:
 	var selected: Node = _selected_node()
+	if selected == null:
+		push_warning("Cannot create a brain without an edited scene root or selected parent.")
+		return
 	var camera: Camera3D = selected as Camera3D
+	var nodes: Array[Node] = []
 	if camera == null:
 		camera = Camera3D.new()
 		camera.name = "Camera3D"
-		_add_node(selected, camera)
+		nodes.append(camera)
 	var brain: CameramanBrain = CameramanBrain.new()
 	brain.name = "CameramanBrain"
-	_add_node(camera, brain)
+	camera.add_child(brain)
+	if nodes.is_empty():
+		nodes.append(brain)
+		_commit_nodes("Create Brain", camera, nodes)
+	else:
+		_commit_nodes("Create Brain", selected, nodes)
 
 func _create_camera() -> void:
-	var parent: Node = _selected_node()
+	var parent: Node = _selected_parent()
+	if parent == null:
+		return
 	var camera: CameramanCamera = CameramanCamera.new()
 	camera.name = "CameramanCamera"
-	_add_node(parent, camera)
 	_add_component(camera, CameramanFollow.new(), "Follow")
 	_add_component(camera, CameramanRotationComposer.new(), "RotationComposer")
+	_commit_nodes("Create Camera", parent, [camera])
 
 func _create_free_look() -> void:
-	var parent: Node = _selected_node()
+	var parent: Node = _selected_parent()
+	if parent == null:
+		return
 	var camera: CameramanCamera = CameramanCamera.new()
 	camera.name = "FreeLookCamera"
-	_add_node(parent, camera)
 	_add_component(camera, CameramanOrbitalFollow.new(), "OrbitalFollow")
 	_add_component(camera, CameramanRotationComposer.new(), "RotationComposer")
 	_add_component(camera, CameramanInputAxisController.new(), "InputAxisController")
+	_commit_nodes("Create FreeLook", parent, [camera])
 
 func _create_third_person() -> void:
-	var parent: Node = _selected_node()
+	var parent: Node = _selected_parent()
+	if parent == null:
+		return
 	var camera: CameramanCamera = CameramanCamera.new()
 	camera.name = "ThirdPersonCamera"
-	_add_node(parent, camera)
 	_add_component(camera, CameramanThirdPersonFollow.new(), "ThirdPersonFollow")
+	_commit_nodes("Create ThirdPerson", parent, [camera])
 
 func _create_dolly() -> void:
-	var parent: Node = _selected_node()
+	var parent: Node = _selected_parent()
+	if parent == null:
+		return
 	var path: Path3D = Path3D.new()
 	path.name = "CameraPath"
 	var curve: Curve3D = Curve3D.new()
@@ -202,25 +248,25 @@ func _create_dolly() -> void:
 	curve.add_point(Vector3(0.0, 4.0, 0.0))
 	curve.add_point(Vector3(0.0, 2.0, -8.0))
 	path.curve = curve
-	_add_node(parent, path)
 	var camera: CameramanCamera = CameramanCamera.new()
 	camera.name = "DollyCamera"
-	_add_node(parent, camera)
 	_add_component(camera, CameramanSplineDolly.new(), "SplineDolly")
+	_commit_nodes("Create Dolly", parent, [path, camera])
 
 func _create_2d_camera() -> void:
-	var parent: Node = _selected_node()
+	var parent: Node = _selected_parent()
+	if parent == null:
+		return
 	var output: Camera2D = Camera2D.new()
 	output.name = "Camera2D"
-	_add_node(parent, output)
 	var brain: CameramanBrain2D = CameramanBrain2D.new()
 	brain.name = "CameramanBrain2D"
-	_add_node(output, brain)
+	output.add_child(brain)
 	var camera: CameramanCamera = CameramanCamera.new()
 	camera.name = "Camera2DVirtualCamera"
-	_add_node(parent, camera)
 	_add_component(camera, CameramanFollow.new(), "Follow")
 	_add_component(camera, CameramanPositionComposer.new(), "PositionComposer")
+	_commit_nodes("Create 2D Camera", parent, [output, camera])
 
 func _create_clear_shot() -> void:
 	_add_manager(CameramanClearShot.new(), "ClearShot")
@@ -235,15 +281,28 @@ func _create_mixing() -> void:
 	_add_manager(CameramanMixingCamera.new(), "MixingCamera")
 
 func _create_target_group() -> void:
-	_add_node(_selected_node(), CameramanTargetGroup.new())
+	var parent: Node = _selected_parent()
+	if parent == null:
+		return
+	var group: CameramanTargetGroup = CameramanTargetGroup.new()
+	group.name = "TargetGroup"
+	_commit_nodes("Create TargetGroup", parent, [group])
 
 func _create_impulse_source() -> void:
-	_add_node(_selected_node(), CameramanImpulseSource.new())
+	var parent: Node = _selected_parent()
+	if parent == null:
+		return
+	var source: CameramanImpulseSource = CameramanImpulseSource.new()
+	source.name = "ImpulseSource"
+	_commit_nodes("Create Impulse Source", parent, [source])
 
 func _add_manager(manager: Node, manager_name: String) -> void:
 	manager.name = manager_name
-	_add_node(_selected_node(), manager)
+	var parent: Node = _selected_parent()
+	if parent == null:
+		return
+	_commit_nodes("Create %s" % manager_name, parent, [manager])
 
 func _add_component(camera: Node, component: Node, component_name: String) -> void:
 	component.name = component_name
-	_add_node(camera, component)
+	camera.add_child(component)

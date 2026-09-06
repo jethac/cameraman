@@ -1,3 +1,4 @@
+@tool
 class_name CameramanBrain
 extends Node
 
@@ -46,13 +47,19 @@ func _init() -> void:
 	default_blend = CameramanBlendDefinition.new()
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		return
 	process_priority = 1000
 	CameramanCore.register_brain(self)
 
 func _exit_tree() -> void:
+	if Engine.is_editor_hint():
+		return
 	CameramanCore.unregister_brain(self)
 
 func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	_record_target_transforms(false)
 	if update_method == UpdateMethod.PROCESS:
 		_update_frame(delta, Engine.get_process_frames())
@@ -60,6 +67,8 @@ func _process(delta: float) -> void:
 		_update_frame(delta, Engine.get_process_frames())
 
 func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	_record_target_transforms(true)
 	if update_method == UpdateMethod.PHYSICS:
 		_update_frame(delta, Engine.get_physics_frames())

@@ -1,3 +1,4 @@
+@tool
 class_name CameramanVirtualCameraBase
 extends Node3D
 
@@ -42,7 +43,8 @@ func on_camera_deactivated(event: CameramanActivationEvent) -> void:
 		extension.on_camera_deactivated(self, event.incoming)
 
 func _enter_tree() -> void:
-	CameramanCore.get_registry().add(self)
+	if not Engine.is_editor_hint():
+		CameramanCore.get_registry().add(self)
 	_refresh_extensions()
 
 func _ready() -> void:
@@ -51,9 +53,12 @@ func _ready() -> void:
 	_refresh_extensions()
 
 func _exit_tree() -> void:
-	CameramanCore.get_registry().remove(self)
+	if not Engine.is_editor_hint():
+		CameramanCore.get_registry().remove(self)
 
 func _notification(what: int) -> void:
+	if Engine.is_editor_hint():
+		return
 	if what == NOTIFICATION_VISIBILITY_CHANGED:
 		if is_inside_tree():
 			if visible:

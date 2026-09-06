@@ -1,3 +1,4 @@
+@tool
 class_name CameramanShotSequence
 extends Node
 
@@ -8,6 +9,8 @@ var _override_handle: int = -1
 var _manual_time: float = 0.0
 
 func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	_update_sequence(delta)
 
 func manual_time_step(delta: float) -> void:

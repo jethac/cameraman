@@ -1,3 +1,4 @@
+@tool
 class_name CameramanStoryboard
 extends CameramanExtension
 
@@ -25,6 +26,8 @@ var _world_quad: MeshInstance3D
 var _world_material: StandardMaterial3D
 
 func _process(_delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	var camera: Node = get_parent()
 	if camera == null:
 		return

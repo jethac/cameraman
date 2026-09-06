@@ -1,3 +1,4 @@
+@tool
 class_name CameramanCameraEvents
 extends Node
 
@@ -10,6 +11,8 @@ signal camera_cut(brain: CameramanBrain)
 @export var camera: CameramanVirtualCameraBase
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		return
 	if camera == null:
 		camera = get_parent() as CameramanVirtualCameraBase
 	if camera != null:

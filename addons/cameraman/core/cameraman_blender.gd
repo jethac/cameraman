@@ -1,3 +1,4 @@
+@tool
 class_name CameramanBlender
 extends RefCounted
 

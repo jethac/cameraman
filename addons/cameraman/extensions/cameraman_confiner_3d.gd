@@ -1,3 +1,4 @@
+@tool
 class_name CameramanConfiner3D
 extends CameramanExtension
 

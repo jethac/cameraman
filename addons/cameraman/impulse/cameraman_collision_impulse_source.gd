@@ -1,3 +1,4 @@
+@tool
 class_name CameramanCollisionImpulseSource
 extends CameramanImpulseSource
 
@@ -8,6 +9,8 @@ extends CameramanImpulseSource
 @export var scale_impact_with_speed: bool = false
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		return
 	var parent_node: Node = get_parent()
 	if parent_node is RigidBody3D and (parent_node as RigidBody3D).body_entered.is_connected(_on_body_entered) == false:
 		(parent_node as RigidBody3D).body_entered.connect(_on_body_entered)

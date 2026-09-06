@@ -1,3 +1,4 @@
+@tool
 class_name CameramanInputAxisController
 extends Node
 
@@ -11,6 +12,8 @@ var _controls: Dictionary = {}
 var _mouse_motion: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		return
 	synchronize_controllers()
 	call_deferred("synchronize_controllers")
 	var camera: Node = get_parent()
@@ -18,6 +21,8 @@ func _ready() -> void:
 		camera.child_entered_tree.connect(_on_camera_child_entered_tree)
 
 func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	if not enabled:
 		return
 	var step: float = delta
@@ -51,6 +56,8 @@ func _process(delta: float) -> void:
 	_mouse_motion = Vector2.ZERO
 
 func _input(event: InputEvent) -> void:
+	if Engine.is_editor_hint():
+		return
 	var motion: InputEventMouseMotion = event as InputEventMouseMotion
 	if motion != null:
 		_mouse_motion += motion.relative

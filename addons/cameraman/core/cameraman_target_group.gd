@@ -1,3 +1,4 @@
+@tool
 class_name CameramanTargetGroup
 extends Node3D
 
@@ -11,10 +12,14 @@ enum UpdateMethod { PROCESS, PHYSICS, LATE }
 @export var update_method: UpdateMethod = UpdateMethod.PROCESS
 
 func _process(_delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	if update_method == UpdateMethod.PROCESS or update_method == UpdateMethod.LATE:
 		update_group()
 
 func _physics_process(_delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	if update_method == UpdateMethod.PHYSICS:
 		update_group()
 

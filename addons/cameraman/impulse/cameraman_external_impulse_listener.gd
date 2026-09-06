@@ -1,3 +1,4 @@
+@tool
 class_name CameramanExternalImpulseListener
 extends Node3D
 
@@ -15,6 +16,8 @@ var _last_position_offset: Vector3 = Vector3.ZERO
 var _last_rotation_offset: Quaternion = Quaternion.IDENTITY
 
 func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	global_position -= _last_position_offset
 	global_basis = (global_basis * Basis(_last_rotation_offset.inverse())).orthonormalized()
 	_last_position_offset = Vector3.ZERO

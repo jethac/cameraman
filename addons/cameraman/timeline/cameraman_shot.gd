@@ -1,3 +1,4 @@
+@tool
 class_name CameramanShot
 extends Node
 
