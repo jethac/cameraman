@@ -1,4 +1,7 @@
 class_name CameramanConfiner3D
+## BODY-stage extension that confines the camera to a 3D collision shape.
+## Concave shapes must be closed, non-self-intersecting meshes; open meshes have no
+## interior and are treated as unconfined.
 extends CameramanExtension
 
 @export var bounding_volume: NodePath
@@ -78,11 +81,8 @@ func _closest_point_inside(shape: Shape3D, point: Vector3) -> Vector3:
 	elif shape is CapsuleShape3D:
 		var capsule: CapsuleShape3D = shape as CapsuleShape3D
 		var half_height: float = maxf(capsule.height * 0.5 - capsule.radius, 0.0)
-		var y: float = clampf(point.y, -half_height, half_height)
-		var radial: Vector2 = Vector2(point.x, point.z)
-		if radial.length() > capsule.radius:
-			radial = radial.normalized() * capsule.radius
-		result = Vector3(radial.x, y, radial.y)
+		var segment_point := Vector3(0.0, clampf(point.y, -half_height, half_height), 0.0)
+		result = segment_point + (point - segment_point).limit_length(capsule.radius)
 	elif shape is CylinderShape3D:
 		var cylinder: CylinderShape3D = shape as CylinderShape3D
 		var radial: Vector2 = Vector2(point.x, point.z)
@@ -265,7 +265,23 @@ func _inside_all_planes(point: Vector3) -> bool:
 	return true
 
 func _inside_mesh(point: Vector3) -> bool:
-	var direction: Vector3 = Vector3(1.0, 0.1234567, 0.2345678).normalized()
+	var first: bool = _inside_mesh_with_direction(
+		point,
+		Vector3(1.0, sqrt(2.0), sqrt(3.0)).normalized()
+	)
+	var second: bool = _inside_mesh_with_direction(
+		point,
+		Vector3(sqrt(5.0), 1.0, sqrt(7.0)).normalized()
+	)
+	if first == second:
+		return first
+	var third: bool = _inside_mesh_with_direction(
+		point,
+		Vector3(sqrt(11.0), sqrt(13.0), 1.0).normalized()
+	)
+	return int(first) + int(second) + int(third) >= 2
+
+func _inside_mesh_with_direction(point: Vector3, direction: Vector3) -> bool:
 	var hits: int = 0
 	for index in range(0, _cached_faces.size() - 2, 3):
 		var hit: Variant = Geometry3D.ray_intersects_triangle(

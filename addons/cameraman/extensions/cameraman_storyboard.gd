@@ -41,7 +41,7 @@ func _process(_delta: float) -> void:
 	if render_mode == RenderMode.WORLD_SPACE:
 		_update_world_space(camera, brain, visible_now)
 	else:
-		_update_screen_space(visible_now)
+		_update_screen_space(brain, visible_now)
 
 func on_camera_activated(_camera: Node, _from: Object) -> void:
 	_ensure_mode()
@@ -68,6 +68,9 @@ func _ensure_mode() -> void:
 
 func _teardown_render_nodes() -> void:
 	if _layer != null:
+		var root_viewport: Viewport = get_viewport()
+		if root_viewport != null and _layer.get_viewport() != root_viewport:
+			_layer.custom_viewport = root_viewport
 		remove_child(_layer)
 		_layer.free()
 	_layer = null
@@ -105,10 +108,23 @@ func _create_world_space() -> void:
 	_world_quad.material_override = _world_material
 	add_child(_world_quad)
 
-func _update_screen_space(visible_now: bool) -> void:
+func _update_screen_space(brain: Node, visible_now: bool) -> void:
 	if _texture_rect == null or _screen_container == null:
 		return
-	var viewport_size: Vector2 = _viewport_size()
+	var output: Camera3D
+	if brain != null and brain.has_method("get_output_camera"):
+		output = brain.call("get_output_camera") as Camera3D
+	if render_mode == RenderMode.SCREEN_SPACE_CAMERA:
+		var output_viewport: Viewport = (
+			output.get_viewport() if output != null else null
+		)
+		if output_viewport != null and output_viewport != _layer.get_viewport():
+			_layer.custom_viewport = output_viewport
+	var viewport_size: Vector2 = (
+		_viewport_size(output)
+		if render_mode == RenderMode.SCREEN_SPACE_CAMERA
+		else _viewport_size()
+	)
 	var split: float = clampf(split_view, 0.0, 1.0)
 	_screen_container.position = Vector2.ZERO
 	_screen_container.size = Vector2(viewport_size.x * split, viewport_size.y)
@@ -177,6 +193,7 @@ func _update_world_space(_camera: Node, brain: Node, visible_now: bool) -> void:
 	_world_quad.global_basis = Basis(Quaternion(view_axis, deg_to_rad(rotation))) * view_basis
 	var forward: Vector3 = -view_basis.z
 	var center_offset: Vector2 = (center - Vector2(0.5, 0.5)) * frame_size
+	center_offset += _get_frustum_shift(output)
 	_world_quad.global_position = (
 		output.global_position
 		+ forward * maxf(world_distance, 0.001)
@@ -188,8 +205,17 @@ func _update_world_space(_camera: Node, brain: Node, visible_now: bool) -> void:
 func _get_frustum_size(output: Camera3D, aspect_ratio: float) -> Vector2:
 	if output.projection == Camera3D.PROJECTION_ORTHOGONAL:
 		return Vector2(output.size * aspect_ratio, output.size)
+	if output.projection == Camera3D.PROJECTION_FRUSTUM:
+		var scale_factor: float = maxf(world_distance, 0.001) / maxf(output.near, 0.001)
+		return Vector2(output.size * aspect_ratio, output.size) * scale_factor
 	var height: float = 2.0 * maxf(world_distance, 0.001) * tan(deg_to_rad(output.fov) * 0.5)
 	return Vector2(height * aspect_ratio, height)
+
+func _get_frustum_shift(output: Camera3D) -> Vector2:
+	if output.projection != Camera3D.PROJECTION_FRUSTUM:
+		return Vector2.ZERO
+	var scale_factor: float = maxf(world_distance, 0.001) / maxf(output.near, 0.001)
+	return output.frustum_offset * scale_factor
 
 func _camera_is_live(camera: Node, brain: Node) -> bool:
 	if brain != null:
