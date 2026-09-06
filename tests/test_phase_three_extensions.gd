@@ -78,6 +78,23 @@ func test_confiner_3d_clamps_box() -> void:
 	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, state, 0.1)
 	assert_almost_eq(state.get_final_position().x, 2.0, 0.001)
 
+func test_confiner_3d_ignores_bounds_before_entering_tree() -> void:
+	var camera: Node3D = Node3D.new()
+	var shape: CollisionShape3D = CollisionShape3D.new()
+	shape.name = "Bounds"
+	var box: BoxShape3D = BoxShape3D.new()
+	box.size = Vector3(4.0, 4.0, 4.0)
+	shape.shape = box
+	camera.add_child(shape)
+	var extension: CameramanConfiner3D = CameramanConfiner3D.new()
+	extension.bounding_volume = NodePath("Bounds")
+	autofree(camera)
+	autofree(extension)
+	var state: CameramanCameraState = CameramanCameraState.create_default()
+	state.raw_position = Vector3(10.0, 0.0, 0.0)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, state, 0.1)
+	assert_almost_eq(state.get_final_position(), state.raw_position, Vector3.ONE * 0.001)
+
 func test_confiner_3d_clamps_convex_tetrahedron() -> void:
 	var camera: Node3D = Node3D.new()
 	add_child_autofree(camera)

@@ -17,13 +17,15 @@ func post_pipeline_stage_callback(
 ) -> void:
 	if stage != CameramanCore.Stage.BODY:
 		return
+	if not camera.is_inside_tree():
+		return
 	var shape_node: CollisionShape3D = camera.get_node_or_null(bounding_volume) as CollisionShape3D
 	if shape_node == null:
 		for child in camera.get_children():
 			if child is CollisionShape3D:
 				shape_node = child as CollisionShape3D
 				break
-	if shape_node == null or shape_node.shape == null:
+	if shape_node == null or not shape_node.is_inside_tree() or shape_node.shape == null:
 		return
 	var local: Vector3 = shape_node.global_transform.affine_inverse() * state.raw_position
 	var corrected: Vector3 = _closest_point_inside(shape_node.shape, local)
