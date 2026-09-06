@@ -80,6 +80,27 @@ as well as a world-space quad positioned at `world_distance` from the output
 camera. Set `split_view` below `1.0` to clip the screen-space image to the
 left portion of the viewport.
 
+## Performance
+
+Run the headless many-camera benchmark with:
+
+```text
+godot --headless -s tests/bench/bench_many_cameras.gd -- 500
+```
+
+On Godot 4.4.1 headless on this VM, using 600 frames with one live camera
+blending and round-robin standby updates:
+
+| Cameras | Time per frame |
+| ---: | ---: |
+| 1 | ≈ 83 µs |
+| 10 | ≈ 500 µs |
+| 100 | ≈ 0.95 ms |
+| 500 | ≈ 2.9 ms |
+
+The 500-camera case measured approximately 12 ms per frame before registry
+sort-order caching was added.
+
 ## Demos
 
 The `demo/` directory contains third-person, free-look, 2D platformer, dolly,

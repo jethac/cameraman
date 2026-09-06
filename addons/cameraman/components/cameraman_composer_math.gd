@@ -45,6 +45,8 @@ static func rotate_to_composition(
 	delta: float,
 	damping: Vector2
 ) -> Quaternion:
+	if (target - camera_position).length_squared() < 1e-8:
+		return camera_orientation
 	var local: Vector3 = camera_orientation.inverse() * (target - camera_position)
 	var current: Vector2 = project_screen_offset(camera_position, camera_orientation, target, lens)
 	var invalid_projection: bool = (

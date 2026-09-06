@@ -245,7 +245,10 @@ func _update_camera(camera: Node3D, world_up: Vector3, delta: float) -> void:
 	CameramanCore.update_virtual_camera(camera, world_up, delta, _update_token)
 
 func _update_aspect_ratio() -> void:
-	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var viewport: Viewport = get_viewport()
+	if viewport == null:
+		return
+	var viewport_size: Vector2 = viewport.get_visible_rect().size
 	if viewport_size.y > 0.0:
 		CameramanCameraState.aspect_ratio = viewport_size.x / viewport_size.y
 

@@ -246,6 +246,21 @@ func test_rotation_composer_handles_target_parallel_to_up() -> void:
 	assert_true(forward.is_finite())
 	assert_gt(forward.dot(Vector3.DOWN), 0.99)
 
+func test_rotation_composer_keeps_orientation_when_target_coincident() -> void:
+	var lens := CameramanLens.new()
+	var current: Quaternion = Quaternion(Vector3.UP, 0.7)
+	var result: Quaternion = CameramanComposerMath.rotate_to_composition(
+		Vector3(1.0, 2.0, 3.0),
+		current,
+		Vector3(1.0, 2.0, 3.0),
+		lens,
+		CameramanScreenComposerSettings.new(),
+		1.0 / 60.0,
+		Vector2.ONE
+	)
+	assert_true(result.is_finite())
+	assert_almost_eq(result.angle_to(current), 0.0, 0.0001)
+
 func test_rotation_composer_aims_from_corrected_position() -> void:
 	var state := CameramanCameraState.create_default()
 	state.raw_position = Vector3(0.0, 5.0, 0.0)
