@@ -57,22 +57,70 @@ func _get_shrunk_polygon(camera: Node, half_window: Vector2) -> PackedVector2Arr
 		return PackedVector2Array()
 	if _cache_valid and _cached_window == half_window:
 		return _cached_polygon
-	var offset: Array[PackedVector2Array] = Geometry2D.offset_polygon(
+	var rectangular_inset: PackedVector2Array = _get_axis_aligned_rect_inset(
 		source,
-		-half_window.x,
-		Geometry2D.JOIN_MITER
+		half_window
 	)
-	if offset.is_empty():
-		_cached_polygon = source
-		_cached_oversized = true
+	if rectangular_inset.size() >= 3:
+		_cached_polygon = rectangular_inset
+		_cached_oversized = false
 	else:
-		_cached_polygon = _largest_polygon(offset)
-		_cached_oversized = _cached_polygon.size() < 3
-		if _cached_oversized:
+		var offset_amount: float = -minf(half_window.x, half_window.y)
+		var offset: Array[PackedVector2Array] = Geometry2D.offset_polygon(
+			source,
+			offset_amount,
+			Geometry2D.JOIN_MITER
+		)
+		if offset.is_empty():
 			_cached_polygon = source
+			_cached_oversized = true
+		else:
+			_cached_polygon = _largest_polygon(offset)
+			_cached_oversized = _cached_polygon.size() < 3
+			if _cached_oversized:
+				_cached_polygon = source
 	_cached_window = half_window
 	_cache_valid = true
 	return _cached_polygon
+
+func _get_axis_aligned_rect_inset(
+	source: PackedVector2Array,
+	half_window: Vector2
+) -> PackedVector2Array:
+	if source.size() != 4:
+		return PackedVector2Array()
+	var min_x: float = source[0].x
+	var max_x: float = source[0].x
+	var min_y: float = source[0].y
+	var max_y: float = source[0].y
+	for point in source:
+		min_x = minf(min_x, point.x)
+		max_x = maxf(max_x, point.x)
+		min_y = minf(min_y, point.y)
+		max_y = maxf(max_y, point.y)
+	for point in source:
+		if not (
+			is_equal_approx(point.x, min_x)
+			or is_equal_approx(point.x, max_x)
+		):
+			return PackedVector2Array()
+		if not (
+			is_equal_approx(point.y, min_y)
+			or is_equal_approx(point.y, max_y)
+		):
+			return PackedVector2Array()
+	var inset_min_x: float = min_x + half_window.x
+	var inset_max_x: float = max_x - half_window.x
+	var inset_min_y: float = min_y + half_window.y
+	var inset_max_y: float = max_y - half_window.y
+	if inset_min_x >= inset_max_x or inset_min_y >= inset_max_y:
+		return PackedVector2Array()
+	return PackedVector2Array([
+		Vector2(inset_max_x, inset_min_y),
+		Vector2(inset_max_x, inset_max_y),
+		Vector2(inset_min_x, inset_max_y),
+		Vector2(inset_min_x, inset_min_y)
+	])
 
 func _get_source_polygon(shape_node: Node) -> PackedVector2Array:
 	if shape_node is Polygon2D:

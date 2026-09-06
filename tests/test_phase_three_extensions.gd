@@ -79,13 +79,15 @@ func test_confiner_3d_clamps_box() -> void:
 	assert_almost_eq(state.get_final_position().x, 2.0, 0.001)
 
 func test_confiner_2d_clamps_window() -> void:
+	var previous_aspect_ratio: float = CameramanCameraState.aspect_ratio
+	CameramanCameraState.aspect_ratio = 1280.0 / 720.0
 	var camera: Node = Node.new()
 	add_child_autofree(camera)
 	var polygon: CollisionPolygon2D = CollisionPolygon2D.new()
 	polygon.name = "Bounds"
 	polygon.polygon = PackedVector2Array([
-		Vector2(-10.0, -10.0), Vector2(10.0, -10.0),
-		Vector2(10.0, 10.0), Vector2(-10.0, 10.0)
+		Vector2(0.0, -1000.0), Vector2(4800.0, -1000.0),
+		Vector2(4800.0, 2000.0), Vector2(0.0, 2000.0)
 	])
 	camera.add_child(polygon)
 	var extension: CameramanConfiner2D = CameramanConfiner2D.new()
@@ -93,11 +95,12 @@ func test_confiner_2d_clamps_window() -> void:
 	autofree(extension)
 	var state: CameramanCameraState = CameramanCameraState.create_default()
 	state.lens.mode_override = CameramanLens.Mode.ORTHOGRAPHIC
-	state.lens.orthographic_size = 4.0
-	state.raw_position = Vector3(20.0, 20.0, 0.0)
+	state.lens.orthographic_size = 360.0
+	state.raw_position = Vector3(5000.0, 0.0, 0.0)
 	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, state, 0.1)
-	assert_lt(state.get_final_position().x, 7.0)
-	assert_true(state.get_final_position().y < 10.0)
+	assert_almost_eq(state.get_final_position().x, 4160.0, 0.001)
+	assert_almost_eq(state.get_final_position().y, 0.0, 0.001)
+	CameramanCameraState.aspect_ratio = previous_aspect_ratio
 
 func test_group_framing_zoom_only_reduces_fov() -> void:
 	var camera: CameramanVirtualCameraBase = CameramanVirtualCameraBase.new()
