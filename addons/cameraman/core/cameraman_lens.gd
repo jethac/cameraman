@@ -11,6 +11,10 @@ enum Mode { NONE, PERSPECTIVE, ORTHOGRAPHIC, FRUSTUM }
 @export var mode_override: Mode = Mode.NONE
 @export var focus_distance: float = 10.0
 @export var frustum_offset: Vector2 = Vector2.ZERO
+@export var physical_properties: CameramanLensPhysicalProperties
+
+func _init() -> void:
+	physical_properties = CameramanLensPhysicalProperties.new()
 
 static func from_focal_length(focal_length: float) -> float:
 	return rad_to_deg(2.0 * atan(12.0 / maxf(focal_length, 0.001)))
@@ -53,6 +57,8 @@ func lerp(other: CameramanLens, weight: float) -> CameramanLens:
 	result.dutch_degrees = lerpf(dutch_degrees, other.dutch_degrees, weight)
 	result.focus_distance = lerpf(focus_distance, other.focus_distance, weight)
 	result.frustum_offset = frustum_offset.lerp(other.frustum_offset, weight)
+	if physical_properties != null and other.physical_properties != null:
+		result.physical_properties = physical_properties.lerp(other.physical_properties, weight)
 	result.mode_override = other.mode_override if weight > 0.5 else mode_override
 	return result
 

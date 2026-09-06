@@ -33,6 +33,13 @@ func is_valid() -> bool:
 
 func on_camera_activated(event: CameramanActivationEvent) -> void:
 	activated.emit(event)
+	for extension in _extensions:
+		extension.on_camera_activated(self, event.outgoing)
+
+func on_camera_deactivated(event: CameramanActivationEvent) -> void:
+	deactivated.emit(event)
+	for extension in _extensions:
+		extension.on_camera_deactivated(self, event.incoming)
 
 func _enter_tree() -> void:
 	CameramanCore.get_registry().add(self)

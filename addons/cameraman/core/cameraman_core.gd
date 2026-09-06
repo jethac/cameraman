@@ -34,6 +34,11 @@ static func get_events() -> CameramanEventBus:
 		events = CameramanEventBus.new()
 	return events
 
+static func get_impulse_manager() -> CameramanImpulseManager:
+	if impulse_manager == null:
+		impulse_manager = CameramanImpulseManager.new()
+	return impulse_manager as CameramanImpulseManager
+
 static func delta_time(raw: float) -> float:
 	if uniform_delta_time_override >= 0.0:
 		return uniform_delta_time_override

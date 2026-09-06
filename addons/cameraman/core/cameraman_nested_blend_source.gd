@@ -39,3 +39,9 @@ func on_transition_from_camera(
 func on_camera_activated(event: CameramanActivationEvent) -> void:
 	if blend.cam_b != null:
 		blend.cam_b.on_camera_activated(event)
+
+func on_camera_deactivated(event: CameramanActivationEvent) -> void:
+	if blend.cam_a != null:
+		blend.cam_a.on_camera_deactivated(event)
+	if blend.cam_b != null:
+		blend.cam_b.on_camera_deactivated(event)

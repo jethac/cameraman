@@ -24,6 +24,12 @@ func on_transition_from_camera(
 ) -> bool:
 	return false
 
+func on_camera_activated(_camera: Node, _from: Object) -> void:
+	pass
+
+func on_camera_deactivated(_camera: Node, _to: Object) -> void:
+	pass
+
 func on_target_object_warped(
 	_camera: Node,
 	_target: Node3D,

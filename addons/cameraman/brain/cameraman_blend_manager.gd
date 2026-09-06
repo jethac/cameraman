@@ -39,6 +39,11 @@ func update_root_frame(
 		CameramanCore.get_events().emit_activation(cut_event)
 		if from_source != null:
 			CameramanCore.get_events().camera_deactivated.emit(owner, outgoing_event_source)
+			var deactivation_event: CameramanActivationEvent = CameramanActivationEvent.new(
+				owner, from_source, desired, true, world_up, delta
+			)
+			if from_source.has_method("on_camera_deactivated"):
+				from_source.on_camera_deactivated(deactivation_event)
 		return true
 	active_blend = CameramanBlend.new(from_source, desired, definition)
 	_blend_outgoing_event_source = outgoing_event_source
@@ -68,6 +73,11 @@ func update(
 			var outgoing: Object = _blend_outgoing_event_source
 			CameramanCore.get_events().blend_finished.emit(_owner, active_blend.cam_b)
 			CameramanCore.get_events().camera_deactivated.emit(_owner, outgoing)
+			var deactivation_event: CameramanActivationEvent = CameramanActivationEvent.new(
+				_owner, outgoing, active_blend.cam_b, false, world_up, delta
+			)
+			if outgoing.has_method("on_camera_deactivated"):
+				outgoing.on_camera_deactivated(deactivation_event)
 			active_source = active_blend.cam_b
 			active_blend = null
 			_blend_outgoing_event_source = null

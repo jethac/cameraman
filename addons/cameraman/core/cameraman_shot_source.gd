@@ -25,3 +25,6 @@ func update_state(_world_up: Vector3, _delta: float) -> void:
 
 func on_camera_activated(_event: CameramanActivationEvent) -> void:
 	pass
+
+func on_camera_deactivated(_event: CameramanActivationEvent) -> void:
+	pass
