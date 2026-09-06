@@ -198,6 +198,8 @@ func _make_follow_camera(parent: Node3D) -> CameramanCamera:
 	avoidance.damping_from_collision = 0.3
 	follow.avoid_obstacles = avoidance
 	camera.add_child(follow)
+	var look_at: CameramanHardLookAt = CameramanHardLookAt.new()
+	camera.add_child(look_at)
 	camera.add_child(_make_deoccluder())
 	camera.add_child(_make_listener(1.0))
 	return camera
