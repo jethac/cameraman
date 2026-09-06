@@ -45,13 +45,23 @@ static func find_brain_for(camera: Node) -> Node:
 			first_brain = brain
 		if brain.has_method("get_output_camera") and brain.call("get_output_camera") == camera:
 			return brain
-		if (
-			camera is CameramanVirtualCameraBase
-			and brain.has_method("is_live")
-			and bool(brain.call("is_live", camera))
-		):
+		if is_live_in_brain(brain, camera):
 			return brain
 	return first_brain
+
+static func is_live_in_brain(brain: Node, camera: Node) -> bool:
+	if brain == null or camera == null:
+		return false
+	if (
+		camera is CameramanVirtualCameraBase
+		and brain.has_method("is_live")
+		and bool(brain.call("is_live", camera))
+	):
+		return true
+	var parent: Node = camera.get_parent()
+	if parent is CameramanCameraManagerBase and parent.is_live_child(camera):
+		return is_live_in_brain(brain, parent)
+	return false
 
 static func get_registry() -> CameramanRegistry:
 	if registry == null:
