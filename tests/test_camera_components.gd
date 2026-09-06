@@ -208,3 +208,81 @@ func test_rotation_composer_reaches_screen_composition() -> void:
 		camera.get_state().lens
 	)
 	assert_almost_eq(screen_offset.x, 0.15, 0.03)
+
+func test_rotation_composer_recovers_target_outside_camera_frustum() -> void:
+	var camera_position := Vector3(0.0, 8.0, 0.0)
+	var orientation := Basis.looking_at(Vector3.FORWARD, Vector3.UP, false).get_rotation_quaternion()
+	var target := Vector3(5.0, 0.0, 5.0)
+	var lens := CameramanLens.new()
+	var settings := CameramanScreenComposerSettings.new()
+	var result := orientation
+	for _index in 10:
+		result = CameramanComposerMath.rotate_to_composition(
+			camera_position,
+			result,
+			target,
+			lens,
+			settings,
+			1.0 / 60.0,
+			Vector2.ONE
+		)
+	var forward: Vector3 = result * Vector3.FORWARD
+	var target_direction: Vector3 = (target - camera_position).normalized()
+	assert_lt(forward.y, 0.0)
+	assert_gt(forward.dot(target_direction), 0.95)
+
+func test_rotation_composer_handles_target_parallel_to_up() -> void:
+	var lens := CameramanLens.new()
+	var result: Quaternion = CameramanComposerMath.rotate_to_composition(
+		Vector3.ZERO,
+		Quaternion.IDENTITY,
+		Vector3(0.0, -5.0, 0.0),
+		lens,
+		CameramanScreenComposerSettings.new(),
+		1.0 / 60.0,
+		Vector2.ONE
+	)
+	var forward: Vector3 = result * Vector3.FORWARD
+	assert_true(forward.is_finite())
+	assert_gt(forward.dot(Vector3.DOWN), 0.99)
+
+func test_rotation_composer_aims_from_corrected_position() -> void:
+	var state := CameramanCameraState.create_default()
+	state.raw_position = Vector3(0.0, 5.0, 0.0)
+	state.position_correction = Vector3(10.0, 0.0, 0.0)
+	state.raw_orientation = Quaternion.IDENTITY
+	state.reference_look_at = Vector3(10.0, 0.0, -5.0)
+	var composer := CameramanRotationComposer.new()
+	autofree(composer)
+	composer.mutate_camera_state(state, 0.1)
+	var expected := Vector3(0.0, -0.7071068, -0.7071068)
+	assert_gt((state.raw_orientation * Vector3.FORWARD).dot(expected), 0.99)
+
+func test_hard_look_at_aims_from_corrected_position() -> void:
+	var state := CameramanCameraState.create_default()
+	state.raw_position = Vector3(0.0, 5.0, 0.0)
+	state.position_correction = Vector3(10.0, 0.0, 0.0)
+	state.reference_look_at = Vector3(10.0, 0.0, -5.0)
+	var look_at := CameramanHardLookAt.new()
+	autofree(look_at)
+	look_at.mutate_camera_state(state, 0.1)
+	var expected := Vector3(0.0, -0.7071068, -0.7071068)
+	assert_gt((state.raw_orientation * Vector3.FORWARD).dot(expected), 0.99)
+
+func test_position_composer_projects_from_corrected_position() -> void:
+	var root := Node3D.new()
+	var target := Node3D.new()
+	target.position = Vector3(10.0, 0.0, -5.0)
+	var camera := CameramanCamera.new()
+	camera.look_at_target = target
+	var composer := CameramanPositionComposer.new()
+	camera.add_child(composer)
+	root.add_child(target)
+	root.add_child(camera)
+	add_child_autofree(root)
+	var state := CameramanCameraState.create_default()
+	state.raw_position = Vector3(0.0, 5.0, 0.0)
+	state.position_correction = Vector3(10.0, 0.0, 0.0)
+	state.raw_orientation = Quaternion.IDENTITY
+	composer.mutate_camera_state(state, 0.1)
+	assert_almost_eq(state.raw_position, Vector3(0.0, 5.0, 0.0), Vector3.ONE * 0.001)

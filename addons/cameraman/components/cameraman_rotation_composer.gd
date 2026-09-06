@@ -24,7 +24,7 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 		_lookahead.record(look_at_target.global_position, CameramanCore.current_time())
 		target = _lookahead.predict(lookahead_time, false) + target_offset
 	state.raw_orientation = CameramanComposerMath.rotate_to_composition(
-		state.raw_position,
+		state.get_final_position(),
 		state.raw_orientation,
 		target,
 		state.lens,

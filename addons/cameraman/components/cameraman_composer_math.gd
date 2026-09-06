@@ -45,20 +45,31 @@ static func rotate_to_composition(
 	delta: float,
 	damping: Vector2
 ) -> Quaternion:
+	var local: Vector3 = camera_orientation.inverse() * (target - camera_position)
 	var current: Vector2 = project_screen_offset(camera_position, camera_orientation, target, lens)
-	var error: Vector2 = get_composition_error(current, settings)
-	var weight: Vector2 = Vector2(
-		CameramanDamper.damp(1.0, damping.x, delta),
-		CameramanDamper.damp(1.0, damping.y, delta)
+	var invalid_projection: bool = (
+		local.z >= -0.001
+		or absf(current.x) > 2.0
+		or absf(current.y) > 2.0
 	)
-	var desired: Vector2 = current + error * weight
+	var desired: Vector2
+	if invalid_projection:
+		desired = settings.get_composition_offset()
+	else:
+		var error: Vector2 = get_composition_error(current, settings)
+		var weight: Vector2 = Vector2(
+			CameramanDamper.damp(1.0, damping.x, delta),
+			CameramanDamper.damp(1.0, damping.y, delta)
+		)
+		desired = current + error * weight
 	var half_height: float = tan(deg_to_rad(lens.fov_degrees) * 0.5)
 	var half_width: float = half_height * CameramanCameraState.aspect_ratio
 	var local_direction: Vector3 = Vector3(desired.x * half_width, desired.y * half_height, -1.0)
 	var target_direction: Vector3 = (target - camera_position).normalized()
+	var up: Vector3 = Vector3.FORWARD if absf(target_direction.dot(Vector3.UP)) > 0.999 else Vector3.UP
 	var target_basis: Quaternion = Basis.looking_at(
 		target_direction,
-		Vector3.UP,
+		up,
 		false
 	).get_rotation_quaternion()
 	return (target_basis * Quaternion(local_direction, Vector3.FORWARD)).normalized()
@@ -72,7 +83,14 @@ static func move_to_composition(
 	delta: float,
 	damping: Vector3
 ) -> Vector3:
+	var local: Vector3 = camera_orientation.inverse() * (target - camera_position)
 	var current: Vector2 = project_screen_offset(camera_position, camera_orientation, target, lens)
+	if (
+		local.z >= -0.001
+		or absf(current.x) > 2.0
+		or absf(current.y) > 2.0
+	):
+		current = current.clamp(Vector2(-2.0, -2.0), Vector2(2.0, 2.0))
 	var error: Vector2 = get_composition_error(current, settings)
 	var weight: Vector3 = Vector3(
 		CameramanDamper.damp(1.0, damping.x, delta),
