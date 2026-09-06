@@ -96,7 +96,7 @@ func test_confiner_2d_clamps_window() -> void:
 	state.lens.orthographic_size = 4.0
 	state.raw_position = Vector3(20.0, 20.0, 0.0)
 	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, state, 0.1)
-	assert_true(state.get_final_position().x < 10.0)
+	assert_lt(state.get_final_position().x, 7.0)
 	assert_true(state.get_final_position().y < 10.0)
 
 func test_group_framing_zoom_only_reduces_fov() -> void:

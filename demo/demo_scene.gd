@@ -1,6 +1,11 @@
 class_name CameramanDemoScene
 extends Node
 
+const PLATFORMER_LEVEL_LEFT: float = -1000.0
+const PLATFORMER_LEVEL_RIGHT: float = 3800.0
+const PLATFORMER_LEVEL_TOP: float = -1000.0
+const PLATFORMER_LEVEL_BOTTOM: float = 2600.0
+
 @export var demo_kind: String = "third_person"
 @export var is_2d: bool = false
 @export var demo_autopilot: bool = false
@@ -531,7 +536,11 @@ func _create_2d_demo() -> void:
 	level_light.energy = 0.8
 	level.add_child(level_light)
 	for data in [
-		[Vector2(640.0, 620.0), Vector2(2280.0, 80.0), Color("#4d8f58")],
+		[
+			Vector2((PLATFORMER_LEVEL_LEFT + PLATFORMER_LEVEL_RIGHT) * 0.5, 620.0),
+			Vector2(PLATFORMER_LEVEL_RIGHT - PLATFORMER_LEVEL_LEFT, 80.0),
+			Color("#4d8f58")
+		],
 		[Vector2(280.0, 470.0), Vector2(260.0, 35.0), Color("#d99058")],
 		[Vector2(700.0, 370.0), Vector2(280.0, 35.0), Color("#9a6bc4")],
 		[Vector2(1050.0, 270.0), Vector2(300.0, 35.0), Color("#d36b76")]
@@ -551,11 +560,24 @@ func _create_2d_demo() -> void:
 	player_shape.size = Vector2(32.0, 48.0)
 	player_collision.shape = player_shape
 	_platformer_player.add_child(player_collision)
-	_add_platform_boundary(level, Vector2(-500.0, 360.0), Vector2(40.0, 720.0))
-	_add_platform_boundary(level, Vector2(1780.0, 360.0), Vector2(40.0, 720.0))
-	_add_platform_boundary(level, Vector2(640.0, -20.0), Vector2(1320.0, 40.0))
+	_add_platform_boundary(
+		level,
+		Vector2(PLATFORMER_LEVEL_LEFT, 360.0),
+		Vector2(40.0, 720.0),
+		Vector2(20.0, 0.0)
+	)
+	_add_platform_boundary(
+		level,
+		Vector2(PLATFORMER_LEVEL_RIGHT, 360.0),
+		Vector2(40.0, 720.0),
+		Vector2(-20.0, 0.0)
+	)
 	var output: Camera2D = Camera2D.new()
 	output.name = "OutputCamera"
+	output.limit_left = int(PLATFORMER_LEVEL_LEFT)
+	output.limit_right = int(PLATFORMER_LEVEL_RIGHT)
+	output.limit_top = int(PLATFORMER_LEVEL_TOP)
+	output.limit_bottom = int(PLATFORMER_LEVEL_BOTTOM)
 	add_child(output)
 	_brain = CameramanBrain2D.new()
 	_brain.name = "Brain2D"
@@ -570,18 +592,21 @@ func _create_2d_demo() -> void:
 	camera.lens.orthographic_size = 720.0
 	camera.position = Vector3(_platformer_player.position.x, _platformer_player.position.y, 0.0)
 	add_child(camera)
+	_platformer_player.camera_min_x = PLATFORMER_LEVEL_LEFT + 1280.0
+	_platformer_player.camera_max_x = PLATFORMER_LEVEL_RIGHT - 1280.0
 	var follow: CameramanFollow = CameramanFollow.new()
 	follow.name = "Follow"
 	var position_composer: CameramanPositionComposer = CameramanPositionComposer.new()
 	position_composer.name = "PositionComposer"
-	position_composer.composition.dead_zone_enabled = true
+	position_composer.composition.dead_zone_enabled = false
 	position_composer.composition.dead_zone_size = Vector2(0.2, 0.2)
 	position_composer.damping = Vector3.ONE * 0.2
+	position_composer.unlimited_soft_zone = true
 	camera.add_child(follow)
 	camera.add_child(position_composer)
 	var confiner: CameramanConfiner2D = CameramanConfiner2D.new()
 	confiner.name = "Confiner2D"
-	confiner.damping = Vector2.ONE * 0.2
+	confiner.damping = Vector2.ZERO
 	camera.add_child(confiner)
 	_add_2d_bounds(level, confiner)
 	_platformer_player.camera_target = camera
@@ -604,10 +629,24 @@ func _add_platform(parent: Node2D, center: Vector2, size: Vector2, color: Color)
 	collision.shape = shape
 	body.add_child(collision)
 
-func _add_platform_boundary(parent: Node2D, center: Vector2, size: Vector2) -> void:
+func _add_platform_boundary(
+	parent: Node2D,
+	center: Vector2,
+	size: Vector2,
+	visual_offset: Vector2 = Vector2.ZERO
+) -> void:
 	var body: StaticBody2D = StaticBody2D.new()
 	body.position = center
 	parent.add_child(body)
+	var visual: Polygon2D = Polygon2D.new()
+	var half: Vector2 = size * 0.5
+	visual.polygon = PackedVector2Array([
+		Vector2(-half.x, -half.y), Vector2(half.x, -half.y),
+		Vector2(half.x, half.y), Vector2(-half.x, half.y)
+	])
+	visual.color = Color("#315c4d")
+	visual.position = visual_offset
+	body.add_child(visual)
 	var collision: CollisionShape2D = CollisionShape2D.new()
 	var shape: RectangleShape2D = RectangleShape2D.new()
 	shape.size = size
@@ -618,8 +657,10 @@ func _add_2d_bounds(parent: Node2D, confiner: CameramanConfiner2D) -> void:
 	var bounds: CollisionPolygon2D = CollisionPolygon2D.new()
 	bounds.name = "LevelBounds"
 	bounds.polygon = PackedVector2Array([
-		Vector2(-500.0, -360.0), Vector2(1780.0, -360.0),
-		Vector2(1780.0, 1080.0), Vector2(-500.0, 1080.0)
+		Vector2(PLATFORMER_LEVEL_LEFT, PLATFORMER_LEVEL_TOP),
+		Vector2(PLATFORMER_LEVEL_RIGHT, PLATFORMER_LEVEL_TOP),
+		Vector2(PLATFORMER_LEVEL_RIGHT, PLATFORMER_LEVEL_BOTTOM),
+		Vector2(PLATFORMER_LEVEL_LEFT, PLATFORMER_LEVEL_BOTTOM)
 	])
 	parent.add_child(bounds)
 	confiner.bounding_shape = NodePath("../Level/LevelBounds")

@@ -43,8 +43,8 @@ func _get_half_window(state: CameramanCameraState) -> Vector2:
 	if not state.lens.is_orthographic():
 		return Vector2.ZERO
 	var half_window: Vector2 = Vector2(
-		state.lens.orthographic_size * CameramanCameraState.aspect_ratio * 0.5,
-		state.lens.orthographic_size * 0.5
+		state.lens.orthographic_size * CameramanCameraState.aspect_ratio,
+		state.lens.orthographic_size
 	)
 	if max_window_size != Vector2.ZERO:
 		half_window = half_window.min(max_window_size * 0.5)
