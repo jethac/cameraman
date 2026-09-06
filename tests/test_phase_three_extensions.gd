@@ -106,6 +106,42 @@ func test_confiner_3d_ignores_bounds_before_entering_tree() -> void:
 	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, state, 0.1)
 	assert_almost_eq(state.get_final_position(), state.raw_position, Vector3.ONE * 0.001)
 
+func test_confiner_3d_capsule_uses_spherical_caps() -> void:
+	var camera: Node3D = Node3D.new()
+	add_child_autofree(camera)
+	var shape: CollisionShape3D = CollisionShape3D.new()
+	var capsule: CapsuleShape3D = CapsuleShape3D.new()
+	capsule.radius = 1.0
+	capsule.height = 4.0
+	shape.shape = capsule
+	camera.add_child(shape)
+	var extension: CameramanConfiner3D = CameramanConfiner3D.new()
+	autofree(extension)
+	var inside: CameramanCameraState = CameramanCameraState.create_default()
+	inside.raw_position = Vector3(0.0, 1.5, 0.0)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, inside, 0.1)
+	assert_almost_eq(inside.get_final_position(), inside.raw_position, Vector3.ONE * 0.001)
+	var cap_point := Vector3(0.8, 1.8, 0.0)
+	var cap: CameramanCameraState = CameramanCameraState.create_default()
+	cap.raw_position = cap_point
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, cap, 0.1)
+	var cap_center := Vector3(0.0, 1.0, 0.0)
+	var cap_direction: Vector3 = (cap.get_final_position() - cap_center).normalized()
+	assert_almost_eq(
+		cap.get_final_position().distance_to(cap_center),
+		1.0,
+		0.001
+	)
+	assert_almost_eq(
+		cap_direction,
+		(cap_point - cap_center).normalized(),
+		Vector3.ONE * 0.001
+	)
+	var top: CameramanCameraState = CameramanCameraState.create_default()
+	top.raw_position = Vector3(0.0, 3.0, 0.0)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, top, 0.1)
+	assert_almost_eq(top.get_final_position(), Vector3(0.0, 2.0, 0.0), Vector3.ONE * 0.001)
+
 func test_confiner_3d_clamps_convex_tetrahedron() -> void:
 	var camera: Node3D = Node3D.new()
 	add_child_autofree(camera)
@@ -165,6 +201,26 @@ func test_confiner_3d_convex_hull_handles_coplanar_box_points() -> void:
 	outside.raw_position = Vector3(5.0, 0.0, 0.0)
 	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, outside, 0.1)
 	assert_almost_eq(outside.get_final_position(), Vector3(1.0, 0.0, 0.0), Vector3.ONE * 0.01)
+	var edge_aligned: CameramanCameraState = CameramanCameraState.create_default()
+	edge_aligned.raw_position = Vector3.ZERO
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, edge_aligned, 0.1)
+	assert_almost_eq(edge_aligned.get_final_position(), Vector3.ZERO, Vector3.ONE * 0.001)
+	var tetra: ConcavePolygonShape3D = ConcavePolygonShape3D.new()
+	tetra.set_faces(PackedVector3Array([
+		Vector3.ZERO, Vector3(2.0, 0.0, 0.0), Vector3(0.0, 2.0, 0.0),
+		Vector3.ZERO, Vector3(0.0, 2.0, 0.0), Vector3(0.0, 0.0, 2.0),
+		Vector3.ZERO, Vector3(0.0, 0.0, 2.0), Vector3(2.0, 0.0, 0.0),
+		Vector3(2.0, 0.0, 0.0), Vector3(0.0, 0.0, 2.0), Vector3(0.0, 2.0, 0.0)
+	]))
+	shape.shape = tetra
+	var tetra_inside: CameramanCameraState = CameramanCameraState.create_default()
+	tetra_inside.raw_position = Vector3(0.25, 0.25, 0.25)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, tetra_inside, 0.1)
+	assert_almost_eq(
+		tetra_inside.get_final_position(),
+		tetra_inside.raw_position,
+		Vector3.ONE * 0.001
+	)
 
 func test_confiner_3d_incremental_hull_handles_sphere_samples() -> void:
 	var camera: Node3D = Node3D.new()
@@ -517,6 +573,39 @@ func test_storyboard_world_space_fills_output_frustum() -> void:
 		Vector3.ONE * 0.01
 	)
 
+func test_storyboard_world_space_supports_shifted_frustum_projection() -> void:
+	var root: Node3D = Node3D.new()
+	var output: Camera3D = Camera3D.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.MANUAL
+	output.add_child(brain)
+	root.add_child(output)
+	var camera: CameramanCamera = CameramanCamera.new()
+	var storyboard: CameramanStoryboard = CameramanStoryboard.new()
+	storyboard.render_mode = CameramanStoryboard.RenderMode.WORLD_SPACE
+	storyboard.aspect = CameramanStoryboard.Aspect.STRETCH_TO_FIT
+	storyboard.world_distance = 2.0
+	storyboard.image = ImageTexture.create_from_image(
+		Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	)
+	camera.add_child(storyboard)
+	root.add_child(camera)
+	add_child_autofree(root)
+	brain.manual_update(0.1)
+	output.projection = Camera3D.PROJECTION_FRUSTUM
+	output.size = 2.0
+	output.near = 1.0
+	output.frustum_offset = Vector2(0.5, 0.0)
+	storyboard._process(0.1)
+	var quad: MeshInstance3D = storyboard.get_child(0) as MeshInstance3D
+	var quad_mesh: QuadMesh = quad.mesh as QuadMesh
+	assert_almost_eq(quad_mesh.size.y, 4.0, 0.01)
+	assert_almost_eq(
+		quad.global_position,
+		output.global_position + Vector3(1.0, 0.0, -2.0),
+		Vector3.ONE * 0.01
+	)
+
 func test_storyboard_world_layers_are_isolated() -> void:
 	var root: Node3D = Node3D.new()
 	var first_camera: CameramanCamera = CameramanCamera.new()
@@ -693,6 +782,38 @@ func test_storyboard_switches_render_modes() -> void:
 	storyboard._process(0.1)
 	assert_true(storyboard.get_child(0) is CanvasLayer)
 	assert_eq((storyboard.get_child(0) as CanvasLayer).layer, 1)
+
+func test_storyboard_camera_space_binds_output_viewport() -> void:
+	var root: Node = Node.new()
+	var subviewport: SubViewport = SubViewport.new()
+	subviewport.size = Vector2i(320, 240)
+	subviewport.world_3d = World3D.new()
+	root.add_child(subviewport)
+	var output: Camera3D = Camera3D.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.MANUAL
+	output.add_child(brain)
+	subviewport.add_child(output)
+	var camera: CameramanCamera = CameramanCamera.new()
+	var storyboard: CameramanStoryboard = CameramanStoryboard.new()
+	storyboard.render_mode = CameramanStoryboard.RenderMode.SCREEN_SPACE_CAMERA
+	storyboard.image = ImageTexture.create_from_image(
+		Image.create(16, 16, false, Image.FORMAT_RGBA8)
+	)
+	camera.add_child(storyboard)
+	root.add_child(camera)
+	add_child_autofree(root)
+	brain.manual_update(0.1)
+	storyboard._process(0.1)
+	var layer: CanvasLayer = storyboard.get_child(0) as CanvasLayer
+	var container: Control = layer.get_child(0) as Control
+	assert_eq(layer.custom_viewport, subviewport)
+	assert_almost_eq(container.size, Vector2(320.0, 240.0), Vector2.ONE * 0.001)
+	storyboard.render_mode = CameramanStoryboard.RenderMode.SCREEN_SPACE_OVERLAY
+	storyboard._process(0.1)
+	assert_null((storyboard.get_child(0) as CanvasLayer).custom_viewport)
+	root.remove_child(subviewport)
+	subviewport.free()
 
 func test_storyboard_split_view_clips_to_view_width() -> void:
 	var camera: Node3D = Node3D.new()
