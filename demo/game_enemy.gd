@@ -46,6 +46,10 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if target == null:
 		return
+	if is_on_floor():
+		velocity.y = 0.0
+	else:
+		velocity.y -= float(ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)) * delta
 	var to_target: Vector3 = target.global_position - global_position
 	to_target.y = 0.0
 	var chasing: bool = to_target.length() <= 8.0
@@ -71,8 +75,9 @@ func _process(delta: float) -> void:
 func take_projectile_hit(origin: Vector3) -> void:
 	hit_count += 1
 	_flash_time = 0.2
-	var away: Vector3 = (global_position - origin).normalized()
-	velocity += away * 2.0
+	var away: Vector3 = global_position - origin
+	away.y = 0.0
+	velocity += away.normalized() * 2.0
 	if hit_count >= 3:
 		queue_free()
 
