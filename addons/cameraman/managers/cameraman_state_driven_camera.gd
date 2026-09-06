@@ -1,15 +1,13 @@
 @tool
 class_name CameramanStateDrivenCamera
-## Provides the state driven camera camera manager.
-## Key properties include `animation_tree_path`, `animation_player_path`, `instructions`, which configure its
-## behavior.
+## Camera manager that selects a child from an AnimationTree or AnimationPlayer state.
 extends CameramanCameraManagerBase
 
-## Identifies the scene node used for the animation tree reference.
+## NodePath to the AnimationTree whose active state selects a shot.
 @export var animation_tree_path: NodePath
-## Identifies the scene node used for the animation player reference.
+## Fallback NodePath to an AnimationPlayer used for state lookup.
 @export var animation_player_path: NodePath
-## Configures the instructions used by this type.
+## State-to-camera rules evaluated in their configured order.
 @export var instructions: Array[CameramanStateDrivenInstruction] = []
 
 var _candidate: CameramanVirtualCameraBase
@@ -17,7 +15,7 @@ var _candidate_time: float = 0.0
 var _selected_time: float = 0.0
 var _live_instruction: CameramanStateDrivenInstruction
 
-## Chooses the child camera for the current update.
+## Selects the instruction matching the current animation state and timing rules.
 func choose_current_camera(_world_up: Vector3, delta: float) -> CameramanVirtualCameraBase:
 	var state_name: String = _get_state_name()
 	var instruction: CameramanStateDrivenInstruction = _find_instruction(state_name)

@@ -1,23 +1,21 @@
 @tool
 class_name CameramanSequencerCamera
-## Provides the sequencer camera camera manager.
-## Key properties include `instructions`, `loop`, which configure its behavior.
+## Camera manager that advances through timed child-camera instructions.
 extends CameramanCameraManagerBase
 
-## Configures the instructions used by this type.
+## Ordered child-camera instructions advanced by hold duration.
 @export var instructions: Array[CameramanSequencerInstruction] = []
-## Enables or disables loop.
+## Restarts at the first instruction after the final hold when enabled.
 @export var loop: bool = true
 
 var time_in_sequence: float = 0.0
 var _instruction_index: int = 0
 
-## Handles the camera activated event.
 func on_camera_activated(event: CameramanActivationEvent) -> void:
 	reset_sequence()
 	super.on_camera_activated(event)
 
-## Chooses the child camera for the current update.
+## Selects the instruction camera at the current sequence time.
 func choose_current_camera(_world_up: Vector3, delta: float) -> CameramanVirtualCameraBase:
 	if instructions.is_empty():
 		return super.choose_current_camera(_world_up, delta)
@@ -33,7 +31,7 @@ func choose_current_camera(_world_up: Vector3, delta: float) -> CameramanVirtual
 		return choose_current_camera(_world_up, 0.0)
 	return get_node_or_null(instructions.back().camera) as CameramanVirtualCameraBase
 
-## Returns the blend definition.
+## Uses the blend attached to the active sequencer instruction.
 func get_blend_definition(
 	from_source: Object,
 	to_source: Object,
@@ -45,7 +43,7 @@ func get_blend_definition(
 			return definition
 	return super.get_blend_definition(from_source, to_source, fallback)
 
-## Resets the sequence to its first instruction.
+## Restarts the sequence at its first instruction and clears elapsed hold time.
 func reset_sequence() -> void:
 	time_in_sequence = 0.0
 	_instruction_index = 0

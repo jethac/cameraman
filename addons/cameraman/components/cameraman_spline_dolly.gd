@@ -1,38 +1,34 @@
 @tool
 class_name CameramanSplineDolly
-## Provides the spline dolly camera pipeline component.
-## Key properties include `spline`, `camera_position`, `position_units`, and related settings, which configure its
-## behavior.
+## BODY-stage component that positions and orients a camera along a Path3D curve.
 extends CameramanComponent
 
 enum PositionUnits { DISTANCE, NORMALIZED, KNOT }
 enum CameraRotation { DEFAULT, PATH, PATH_NO_ROLL, FOLLOW_TARGET, FOLLOW_TARGET_NO_ROLL }
 
-## Configures the spline used by this type.
+## Path3D whose curve supplies the camera position and optional rotation.
 @export var spline: Path3D
-## Configures the camera position used by this type.
+## Position along the spline in meters, normalized units, or knot units.
 @export var camera_position: float = 0.0
-## Configures the position units used by this type.
+## Selects how camera_position is interpreted.
 @export var position_units: PositionUnits = PositionUnits.DISTANCE
-## Configures the spline offset used by this type.
+## Local offset from the sampled spline transform.
 @export var spline_offset: Vector3 = Vector3.ZERO
-## Configures the camera rotation used by this type.
+## Selects path, target, or existing-state orientation behavior.
 @export var camera_rotation: CameraRotation = CameraRotation.DEFAULT
-## Configures the automatic dolly used by this type.
+## Optional resource that advances or target-locks camera_position each update.
 @export var automatic_dolly: CameramanSplineAutoDolly
-## Controls the damping applied to position.
+## Seconds to reach about 63% of the sampled position per axis; zero snaps immediately.
 @export var position_damping: Vector3 = Vector3.ZERO
-## Controls the damping applied to angular.
+## Seconds to reach about 63% of sampled orientation; zero snaps immediately.
 @export var angular_damping: float = 0.0
 
 func _init() -> void:
 	automatic_dolly = CameramanSplineAutoDolly.new()
 
-## Returns the pipeline stage handled by this type.
 func stage() -> CameramanCore.Stage:
 	return CameramanCore.Stage.BODY
 
-## Applies this component's camera-state mutation for the current pipeline step.
 func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	if spline == null or spline.curve == null:
 		return
@@ -60,7 +56,7 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 			CameramanDamper.damp(1.0, angular_damping, delta)
 		)
 
-## Forces the camera and its pipeline state to a position and rotation.
+## Projects an externally forced position back onto the spline.
 func force_camera_position(position: Vector3, _rotation: Quaternion) -> void:
 	if spline != null and spline.curve != null:
 		camera_position = spline.curve.get_closest_offset(spline.to_local(position))

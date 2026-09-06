@@ -1,24 +1,22 @@
 @tool
 class_name CameramanThirdPersonAim
-## Provides the third person aim camera pipeline extension.
-## Key properties include `aim_collision_mask`, `aim_distance`, `noise_cancellation`, and related settings, which
-## configure its behavior.
+## PRE and FINALIZE-stage extension that aims a third-person camera toward a collision-tested
+## point.
 extends CameramanExtension
 
-## Selects the physics layers or camera channels used by aim collision mask.
+## Physics layers tested when finding the third-person aim point.
 @export_flags_3d_physics var aim_collision_mask: int = 1
-## Sets the aim distance used by this type.
+## Maximum aim ray distance in meters.
 @export var aim_distance: float = 100.0
-## Configures the noise cancellation used by this type.
+## Removes impulse and noise corrections while calculating aim direction.
 @export var noise_cancellation: bool = false
-## Configures the ignore group used by this type.
+## Bodies in this group are skipped by the aim ray.
 @export var ignore_group: StringName
-## Configures the ignore groups used by this type.
+## Additional groups skipped by the aim ray.
 @export var ignore_groups: Array[StringName] = []
 
 var aim_target: Vector3 = Vector3.ZERO
 
-## Applies this extension before the component pipeline runs.
 func pre_pipeline_mutate_camera_state(
 	camera: Node,
 	state: CameramanCameraState,
@@ -51,7 +49,6 @@ func pre_pipeline_mutate_camera_state(
 	if noise_cancellation:
 		state.orientation_correction = Quaternion.IDENTITY
 
-## Applies extension behavior after the specified pipeline stage.
 func post_pipeline_stage_callback(
 	_camera: Node,
 	stage: CameramanCore.Stage,

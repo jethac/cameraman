@@ -1,35 +1,35 @@
 @tool
 class_name CameramanStoryboard
-## Renders a texture overlay or world/camera-space storyboard during camera activation.
-## Key properties include `image`, `alpha`, `show_image`, and related settings, which configure its behavior.
+## Camera lifecycle extension that renders a texture in overlay, camera-space, or world-space
+## mode.
 extends CameramanExtension
 
 enum Aspect { BEST_FIT, CROP_IMAGE_TO_FIT, STRETCH_TO_FIT }
 enum RenderMode { SCREEN_SPACE_OVERLAY, SCREEN_SPACE_CAMERA, WORLD_SPACE }
 
-## Configures the image used by this type.
+## Texture rendered by the storyboard layer.
 @export var image: Texture2D
-## Configures the alpha used by this type.
+## Opacity multiplier applied to the storyboard texture.
 @export var alpha: float = 1.0
-## Enables or disables show image.
+## Creates and displays the storyboard layer when enabled.
 @export var show_image: bool = true
-## Configures the aspect used by this type.
+## Selects how the texture fits or fills its render area.
 @export var aspect: Aspect = Aspect.BEST_FIT
-## Configures the center used by this type.
+## Normalized texture center position within the render area.
 @export var center: Vector2 = Vector2(0.5, 0.5)
-## Configures the rotation used by this type.
+## Texture rotation in degrees around its center.
 @export var rotation: float = 0.0
-## Configures the scale used by this type.
+## Local texture scale applied after aspect fitting.
 @export var scale: Vector2 = Vector2.ONE
-## Configures the sync scale used by this type.
+## Couples texture scale to the output camera scale when enabled.
 @export var sync_scale: bool = false
-## Enables or disables mute camera.
+## Hides the camera image while the storyboard layer is active.
 @export var mute_camera: bool = false
-## Configures the split view used by this type.
+## Fraction of the viewport width occupied by the storyboard view.
 @export_range(0.0, 1.0) var split_view: float = 1.0
-## Selects the render mode behavior.
+## Selects overlay, camera-space, or world-space rendering.
 @export var render_mode: RenderMode = RenderMode.SCREEN_SPACE_OVERLAY
-## Sets the world distance used by this type.
+## Distance in meters from the output camera for world-space rendering.
 @export var world_distance: float = 1.0
 
 var _active_mode: int = -1
@@ -54,7 +54,6 @@ func _process(_delta: float) -> void:
 	else:
 		_update_screen_space(visible_now)
 
-## Handles the camera activated event.
 func on_camera_activated(_camera: Node, _from: Object) -> void:
 	_ensure_mode()
 	if _texture_rect != null:
@@ -62,7 +61,6 @@ func on_camera_activated(_camera: Node, _from: Object) -> void:
 	if _world_quad != null:
 		_world_quad.visible = show_image
 
-## Handles the camera deactivated event.
 func on_camera_deactivated(_camera: Node, _to: Object) -> void:
 	if _texture_rect != null:
 		_texture_rect.visible = false

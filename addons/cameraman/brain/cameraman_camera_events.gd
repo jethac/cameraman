@@ -1,7 +1,6 @@
 @tool
 class_name CameramanCameraEvents
-## Provides the camera events scene node.
-## Key properties include `camera`, which configure its behavior.
+## Forwards virtual-camera activation signals to scene-tree callbacks.
 extends Node
 
 signal camera_activated(event: CameramanActivationEvent)
@@ -10,7 +9,7 @@ signal blend_created(params: CameramanBlendEvent)
 signal blend_finished(mixer: Node, camera: Object)
 signal camera_cut(brain: CameramanBrain)
 
-## Configures the camera used by this type.
+## Virtual camera whose activation signals are forwarded by this node.
 @export var camera: CameramanVirtualCameraBase
 
 func _ready() -> void:

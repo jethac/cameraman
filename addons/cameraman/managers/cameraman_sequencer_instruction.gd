@@ -1,14 +1,13 @@
 @tool
 class_name CameramanSequencerInstruction
-## Provides the sequencer instruction configuration resource.
-## Key properties include `camera`, `blend`, `hold`, which configure its behavior.
+## Resource describing one sequencer camera, blend, and hold duration.
 extends Resource
 
-## Configures the camera used by this type.
+## NodePath to the child virtual camera selected by this instruction.
 @export var camera: NodePath
-## Defines the blend behavior used by blend.
+## Transition definition used when entering this instruction.
 @export var blend: CameramanBlendDefinition
-## Configures the hold used by this type.
+## Seconds this instruction remains selected before advancing.
 @export var hold: float = 1.0
 
 func _init() -> void:

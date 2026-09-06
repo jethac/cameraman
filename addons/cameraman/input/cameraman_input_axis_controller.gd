@@ -1,19 +1,17 @@
 @tool
 class_name CameramanInputAxisController
-## Provides the input axis controller scene node.
-## Key properties include `enabled`, `ignore_time_scale`, `scan_recursively`, and related settings, which configure
-## its behavior.
+## Scene node that synchronizes axis controls and feeds input into camera components.
 extends Node
 
-## Enables or disables enabled.
+## Enables input polling and axis updates for this node.
 @export var enabled: bool = true
-## Configures the ignore time scale used by this type.
+## Uses unscaled delta when updating controlled axes.
 @export var ignore_time_scale: bool = false
-## Configures the scan recursively used by this type.
+## Finds axis controls in descendants instead of direct children only.
 @export var scan_recursively: bool = false
-## Defines the blend behavior used by suppress input while blending.
+## Prevents input changes while the containing brain is blending.
 @export var suppress_input_while_blending: bool = false
-## Configures the controls used by this type.
+## Controls mapped to the input axes discovered by this node.
 @export var controls: Array[CameramanInputAxisControl] = []
 
 var _controls: Dictionary = {}
@@ -73,7 +71,7 @@ func _input(event: InputEvent) -> void:
 func _on_camera_child_entered_tree(_child: Node) -> void:
 	call_deferred("synchronize_controllers")
 
-## Synchronizes controls with the current axis children.
+## Rebuilds axis bindings from controls, preserving existing axis resources when possible.
 func synchronize_controllers() -> void:
 	var camera: Node = get_parent()
 	if camera == null:
@@ -110,11 +108,11 @@ func synchronize_controllers() -> void:
 	_controls = next_controls
 	controls = synchronized
 
-## Returns the controller.
+## Returns the control bound to name_value, or null when no binding exists.
 func get_controller(name_value: String) -> CameramanInputAxisControl:
 	return _controls.get(name_value) as CameramanInputAxisControl
 
-## Starts recentering for the named input axis.
+## Requests immediate recentering for the named axis.
 func trigger_recentering(name_value: String) -> void:
 	var control: CameramanInputAxisControl = get_controller(name_value)
 	if control != null and control.axis != null:

@@ -1,6 +1,6 @@
 @tool
 class_name CameramanTargetTracker
-## Provides the target tracker runtime helper.
+## Provides target binding and reference-orientation helpers shared by follow components.
 extends RefCounted
 
 enum BindingMode {

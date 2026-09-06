@@ -1,9 +1,8 @@
 @tool
 class_name CameramanBlender
-## Provides the blender runtime helper.
+## Base interface for custom camera-state blending implementations.
 extends RefCounted
 
-## Blends the supplied camera states.
 func blend(
 	state_a: CameramanCameraState,
 	state_b: CameramanCameraState,

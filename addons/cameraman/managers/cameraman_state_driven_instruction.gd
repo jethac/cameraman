@@ -1,15 +1,13 @@
 @tool
 class_name CameramanStateDrivenInstruction
-## Provides the state driven instruction configuration resource.
-## Key properties include `state_name`, `camera`, `activate_after`, and related settings, which configure its
-## behavior.
+## Resource mapping an animation state to a camera and activation timing.
 extends Resource
 
-## Configures the state name used by this type.
+## Animation state name that activates this instruction.
 @export var state_name: StringName
-## Configures the camera used by this type.
+## NodePath to the child camera selected by this state.
 @export var camera: NodePath
-## Configures the activate after used by this type.
+## Seconds the state must remain active before switching cameras.
 @export var activate_after: float = 0.0
-## Configures the min duration used by this type.
+## Minimum seconds this instruction remains active after switching.
 @export var min_duration: float = 0.0

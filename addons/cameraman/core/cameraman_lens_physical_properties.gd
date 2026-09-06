@@ -1,31 +1,30 @@
 @tool
 class_name CameramanLensPhysicalProperties
-## Provides the lens physical properties configuration resource.
-## Key properties include `sensor_size`, `iso`, `shutter_speed`, and related settings, which configure its behavior.
+## Resource storing physical lens values used when interpolating camera optics.
 extends Resource
 
-## Sets the sensor size used by this type.
+## Sensor width and height in millimeters used for physical lens interpolation.
 @export var sensor_size: Vector2 = Vector2(36.0, 24.0)
-## Configures the iso used by this type.
+## Exposure ISO value stored with the lens state.
 @export var iso: float = 100.0
-## Configures the shutter speed used by this type.
+## Exposure shutter duration in seconds.
 @export var shutter_speed: float = 0.01
-## Configures the aperture used by this type.
+## Lens f-number stored for depth-of-field calculations.
 @export var aperture: float = 2.8
-## Configures the blade count used by this type.
+## Number of aperture blades used by depth-of-field calculations.
 @export var blade_count: int = 5
-## Configures the curvature used by this type.
+## Curvature coefficient stored for physical lens effects.
 @export var curvature: float = 0.0
-## Configures the barrel clipping used by this type.
+## Barrel clipping coefficient stored for physical lens effects.
 @export var barrel_clipping: float = 0.0
-## Configures the anamorphism used by this type.
+## Anamorphic squeeze factor stored for physical lens effects.
 @export var anamorphism: float = 0.0
-## Configures the lens shift used by this type.
+## Physical lens shift stored as a normalized 2D offset.
 @export var lens_shift: Vector2 = Vector2.ZERO
-## Configures the gate fit used by this type.
+## Gate-fit mode stored for physical lens interpolation.
 @export var gate_fit: int = 0
 
-## Returns an interpolated copy using the supplied weight.
+## Interpolates physical lens values without changing either source resource.
 func lerp(other: CameramanLensPhysicalProperties, weight: float) -> CameramanLensPhysicalProperties:
 	var result: CameramanLensPhysicalProperties = duplicate() as CameramanLensPhysicalProperties
 	result.sensor_size = sensor_size.lerp(other.sensor_size, weight)

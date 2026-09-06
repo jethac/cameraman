@@ -1,13 +1,11 @@
 @tool
 class_name CameramanPixelPerfect
-## Provides the pixel perfect camera pipeline extension.
-## Key properties include `enabled`, which configure its behavior.
+## FINALIZE-stage extension that rounds 2D camera output for pixel-aligned rendering.
 extends CameramanExtension
 
-## Enables or disables enabled.
+## Rounds final 2D output to pixel boundaries when enabled.
 @export var enabled: bool = true
 
-## Applies extension behavior after the specified pipeline stage.
 func post_pipeline_stage_callback(
 	camera: Node,
 	stage: CameramanCore.Stage,

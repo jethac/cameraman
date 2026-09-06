@@ -1,16 +1,15 @@
 @tool
 class_name CameramanSplineAutoDolly
-## Provides the spline auto dolly configuration resource.
-## Key properties include `enabled`, `mode`, `speed`, and related settings, which configure its behavior.
+## Resource describing automatic spline movement mode, speed, and target offset.
 extends Resource
 
 enum Mode { FIXED_SPEED, NEAREST_POINT_TO_TARGET }
 
-## Enables or disables enabled.
+## Enables automatic movement of a spline dolly position.
 @export var enabled: bool = false
-## Selects the mode behavior.
+## Selects fixed-speed or nearest-target spline movement.
 @export var mode: Mode = Mode.FIXED_SPEED
-## Configures the speed used by this type.
+## Distance per second, or normalized units per second when the dolly is normalized.
 @export var speed: float = 1.0
-## Configures the position offset used by this type.
+## Offset added to the automatically selected spline position.
 @export var position_offset: float = 0.0

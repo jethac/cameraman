@@ -1,14 +1,13 @@
 @tool
 class_name CameramanNoiseChannel
-## Provides the noise channel configuration resource.
-## Key properties include `x`, `y`, `z`, which configure its behavior.
+## Resource containing per-axis noise parameter sets.
 extends Resource
 
-## Configures the x used by this type.
+## Noise parameters sampled for the local X axis.
 @export var x: CameramanNoiseParams
-## Configures the y used by this type.
+## Noise parameters sampled for the local Y axis.
 @export var y: CameramanNoiseParams
-## Configures the z used by this type.
+## Noise parameters sampled for the local Z axis.
 @export var z: CameramanNoiseParams
 
 func _init() -> void:

@@ -1,21 +1,19 @@
 @tool
 class_name CameramanObstacleAvoidance
-## Stores obstacle-collision settings used to keep a camera path clear of geometry.
-## Key properties include `enabled`, `collision_mask`, `camera_radius`, and related settings, which configure its
-## behavior.
+## Stores collision settings used by camera components to keep paths clear of geometry.
 extends Resource
 
-## Enables or disables enabled.
+## Enables ray or sphere casts before the camera state is written.
 @export var enabled: bool = false
-## Selects the physics layers or camera channels used by collision mask.
+## Physics layers tested by obstacle casts.
 @export_flags_3d_physics var collision_mask: int = 1
-## Sets the camera radius used by this type.
+## Sphere-cast radius in meters; zero uses a ray cast.
 @export var camera_radius: float = 0.2
-## Controls the damping applied to damping into.
+## Seconds used when moving the camera toward a newly detected collision.
 @export var damping_into: float = 0.1
-## Controls the damping applied to damping from collision.
+## Seconds used when restoring distance after a collision clears.
 @export var damping_from_collision: float = 0.2
-## Specifies the target used by minimum distance from target.
+## Minimum camera distance in meters; zero still keeps a 0.05 meter safety floor.
 @export var minimum_distance_from_target: float = 0.0
-## Configures the ignore group used by this type.
+## Bodies in this group are skipped and do not shorten the camera path.
 @export var ignore_group: StringName

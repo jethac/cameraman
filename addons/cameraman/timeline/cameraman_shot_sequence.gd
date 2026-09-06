@@ -1,12 +1,11 @@
 @tool
 class_name CameramanShotSequence
-## Drives timed shot weights and brain overrides for deterministic camera sequences.
-## Key properties include `brain_path`, `priority`, which configure its behavior.
+## Scene node that drives timed shot weights and a brain override.
 extends Node
 
-## Identifies the scene node used for the brain reference.
+## NodePath to the CameramanBrain receiving the sequence override.
 @export var brain_path: NodePath
-## Controls the camera selection priority.
+## Override priority used when multiple shot sequences target one brain.
 @export var priority: int = 100
 
 var _override_handle: int = -1
@@ -17,7 +16,7 @@ func _process(delta: float) -> void:
 		return
 	_update_sequence(delta)
 
-## Advances the time step manually.
+## Advances shot weights by delta and updates the brain override without scene time.
 func manual_time_step(delta: float) -> void:
 	_manual_time += delta
 	for player in _find_animation_players():

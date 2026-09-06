@@ -1,19 +1,17 @@
 @tool
 class_name CameramanCollisionImpulseSource
-## Provides the collision impulse source Cameraman type.
-## Key properties include `collision_mask`, `ignore_group`, `use_impact_direction`, and related settings, which
-## configure its behavior.
+## Impulse source that emits events from body collisions matching its mask and group filter.
 extends CameramanImpulseSource
 
-## Selects the physics layers or camera channels used by collision mask.
+## Physics layers whose body collisions generate impulses.
 @export_flags_3d_physics var collision_mask: int = 1
-## Configures the ignore group used by this type.
+## Colliding bodies in this group do not generate impulses.
 @export var ignore_group: StringName
-## Configures the use impact direction used by this type.
+## Uses the collision normal to orient the generated impulse.
 @export var use_impact_direction: bool = true
-## Configures the scale impact with mass used by this type.
+## Multiplies impulse strength by the other body mass when enabled.
 @export var scale_impact_with_mass: bool = false
-## Configures the scale impact with speed used by this type.
+## Multiplies impulse strength by impact speed when enabled.
 @export var scale_impact_with_speed: bool = false
 
 func _ready() -> void:

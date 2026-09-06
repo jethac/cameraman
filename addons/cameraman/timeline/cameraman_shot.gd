@@ -1,12 +1,11 @@
 @tool
 class_name CameramanShot
-## Provides the shot scene node.
-## Key properties include `camera`, `weight`, `active`, which configure its behavior.
+## Scene node representing one weighted camera shot in a shot sequence.
 extends Node
 
-## Configures the camera used by this type.
+## NodePath to the camera driven by this shot.
 @export var camera: NodePath
-## Configures the weight used by this type.
+## Blend weight in the 0 to 1 range contributed to the sequence override.
 @export_range(0.0, 1.0) var weight: float = 0.0
-## Enables or disables active.
+## Excludes this shot from sequence evaluation when disabled.
 @export var active: bool = true

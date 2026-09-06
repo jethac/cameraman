@@ -1,32 +1,29 @@
 @tool
 class_name CameramanCameraAttributes
-## Provides the camera attributes camera pipeline extension.
-## Key properties include `attributes_path`, `focus_tracking`, `focus_offset`, and related settings, which configure
-## its behavior.
+## FINALIZE-stage extension that applies focus and environment settings to camera attributes.
 extends CameramanExtension
 
 enum FocusTracking { NONE, LOOK_AT_TARGET, FOLLOW_TARGET, CAMERA, CUSTOM_TARGET }
 
-## Identifies the scene node used for the attributes reference.
+## NodePath to the CameraAttributes resource receiving focus settings.
 @export var attributes_path: NodePath
-## Configures the focus tracking used by this type.
+## Selects the look-at, follow, or custom point used for focus distance.
 @export var focus_tracking: FocusTracking = FocusTracking.LOOK_AT_TARGET
-## Configures the focus offset used by this type.
+## Offset in meters added to the tracked focus distance.
 @export var focus_offset: float = 0.0
-## Controls the damping applied to focus.
+## Seconds used to smooth changes to focus distance; zero snaps immediately.
 @export var focus_damping: float = 0.0
-## Specifies the target used by custom target.
+## Target used when focus_tracking selects the custom target mode.
 @export var custom_target: Node3D
-## Configures the world environment used by this type.
+## NodePath to the WorldEnvironment updated by this extension.
 @export var world_environment: NodePath
-## Sets the dof near distance used by this type.
+## Near depth-of-field distance in meters.
 @export var dof_near_distance: float = 0.0
-## Sets the dof far distance used by this type.
+## Far depth-of-field distance in meters.
 @export var dof_far_distance: float = 100.0
 
 var _focus_distance: float = -1.0
 
-## Applies extension behavior after the specified pipeline stage.
 func post_pipeline_stage_callback(
 	camera: Node,
 	stage: CameramanCore.Stage,

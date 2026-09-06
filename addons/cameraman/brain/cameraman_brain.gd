@@ -1,8 +1,7 @@
 @tool
 class_name CameramanBrain
 ## Coordinates live camera selection, pipeline evaluation, and transitions for an output camera.
-## Key properties include `camera_path`, `show_debug_text`, `show_camera_frustum`, and related settings, which
-## configure its behavior.
+## Attach it to the output camera and configure its update and blend policies.
 extends Node
 
 signal camera_cut(brain: CameramanBrain)
@@ -11,29 +10,29 @@ signal camera_activated(brain: CameramanBrain, incoming: Object, outgoing: Objec
 enum UpdateMethod { PROCESS, PHYSICS, SMART, MANUAL }
 enum BlendUpdateMethod { PROCESS, PHYSICS }
 
-## Identifies the scene node used for the camera reference.
+## NodePath to the Camera3D or Camera2D whose output this brain drives.
 @export var camera_path: NodePath
-## Configures the show debug text used by this type.
+## Draws the live camera, blend, and state summary while enabled.
 @export var show_debug_text: bool = false
-## Configures the show camera frustum used by this type.
+## Draws the output frustum in the editor and debug view while enabled.
 @export var show_camera_frustum: bool = true
-## Configures the ignore time scale used by this type.
+## Uses unscaled process time when true; a zero Engine.time_scale still pauses updates.
 @export var ignore_time_scale: bool = false
-## Configures the world up override used by this type.
+## Supplies a node whose up direction replaces Vector3.UP for camera evaluation.
 @export var world_up_override: Node3D
-## Selects the physics layers or camera channels used by channel mask.
+## Output channels this brain drives; a camera is eligible when the masks overlap.
 @export_flags("All Channels") var channel_mask: int = 0xFFFFFFFF
-## Configures the update method used by this type.
+## Selects process, physics, smart, or manual brain updates.
 @export var update_method: UpdateMethod = UpdateMethod.SMART
-## Defines the blend behavior used by blend update method.
+## Selects the process or physics clock used while a transition is active.
 @export var blend_update_method: BlendUpdateMethod = BlendUpdateMethod.PROCESS
-## Selects the lens mode override enabled behavior.
+## Forces every evaluated lens to use default_lens_mode when enabled.
 @export var lens_mode_override_enabled: bool = false
-## Selects the default lens mode behavior.
+## Lens mode applied when lens_mode_override_enabled is true.
 @export var default_lens_mode: CameramanLens.Mode = CameramanLens.Mode.PERSPECTIVE
-## Defines the blend behavior used by default blend.
+## Blend definition used when no camera-specific or custom rule matches.
 @export var default_blend: CameramanBlendDefinition
-## Defines the blend behavior used by custom blends.
+## Named source-to-destination rules checked before default_blend.
 @export var custom_blends: CameramanBlenderSettings
 
 var active_virtual_camera: CameramanVirtualCameraBase
@@ -90,24 +89,22 @@ func _physics_process(delta: float) -> void:
 	elif update_method == UpdateMethod.SMART and _desired_source_is_physics_driven():
 		_update_frame(delta, Engine.get_physics_frames())
 
-## Advances the update manually.
+## Advances one brain frame by delta seconds; only valid with update_method MANUAL.
 func manual_update(delta: float = -1.0) -> void:
 	var step: float = delta if delta >= 0.0 else get_process_delta_time()
 	_update_frame(step, _frame + 1)
 
-## Requests a cut on the next camera transition.
+## Forces the next camera transition to a hard cut; cleared once that transition occurs.
 func cut_next_transition() -> void:
 	_cut_next_transition = true
 
-## Handles the target warped event.
+## Converts a target warp notification into a one-shot cut request.
 func on_target_warped(_target: Node3D) -> void:
 	cut_next_transition()
 
-## Returns whether this camera source is live.
 func is_live(camera: CameramanVirtualCameraBase) -> bool:
 	return _blend_manager.is_live(camera)
 
-## Returns the live description.
 func get_live_description() -> String:
 	if active_blend != null:
 		return active_blend.description()
@@ -115,13 +112,13 @@ func get_live_description() -> String:
 		return _blend_manager.active_source.get_description()
 	return "<none>"
 
-## Returns the configured world-up direction.
+## Returns world up from world_up_override when assigned, otherwise Vector3.UP.
 func default_world_up() -> Vector3:
 	if world_up_override != null:
 		return world_up_override.global_basis.y.normalized()
 	return Vector3.UP
 
-## Sets the camera override.
+## Adds a weighted override that temporarily wins camera selection for this brain.
 func set_camera_override(
 	identifier: int,
 	priority_value: int,
@@ -156,17 +153,17 @@ func set_camera_override(
 	_overrides[id] = entry
 	return id
 
-## Releases a previously registered camera override.
+## Removes the override identified by the returned integer handle.
 func release_camera_override(identifier: int) -> void:
 	_overrides.erase(identifier)
 
-## Returns the output camera.
+## Resolves and returns the Camera3D or Camera2D selected by camera_path.
 func get_output_camera() -> Camera3D:
 	if not camera_path.is_empty():
 		return get_node_or_null(camera_path) as Camera3D
 	return get_parent() as Camera3D
 
-## Returns the blend definition.
+## Chooses custom, source-specific, or default transition rules for two sources.
 func get_blend_definition(
 	from_source: Object,
 	to_source: Object,

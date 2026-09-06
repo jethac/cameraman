@@ -1,6 +1,6 @@
 @tool
 class_name CameramanImpulseEvent
-## Provides the impulse event runtime helper.
+## Stores one impulse velocity, origin, timing, and decay parameters.
 extends RefCounted
 
 var position: Vector3
@@ -19,7 +19,6 @@ var envelope_curve: Curve
 var ignore_time_scale: bool = false
 var frequency_gain: float = 1.0
 
-## Returns the decayed impulse signal for a listener.
 func get_decayed_signal(listener_position: Vector3, use_2d: bool, now: float) -> Array[Variant]:
 	var elapsed: float = now - start_time
 	var distance: Vector3 = listener_position - position
@@ -48,7 +47,6 @@ func get_decayed_signal(listener_position: Vector3, use_2d: bool, now: float) ->
 	var signal_value: Vector3 = signal_velocity * weight
 	return [signal_value, Quaternion.from_euler(signal_value * 0.1)]
 
-## Returns whether this event has expired.
 func is_expired(now: float) -> bool:
 	if impulse_type == 2:
 		return now - start_time >= duration + 60.0

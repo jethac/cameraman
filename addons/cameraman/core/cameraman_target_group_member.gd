@@ -1,18 +1,17 @@
 @tool
 class_name CameramanTargetGroupMember
-## Provides the target group member configuration resource.
-## Key properties include `target_path`, `weight`, `radius`, which configure its behavior.
+## Resource describing one target node, its framing weight, and its radius.
 extends Resource
 
-## Identifies the scene node used for the target reference.
+## NodePath resolved against the edited scene root to find this target.
 @export var target_path: NodePath
-## Configures the weight used by this type.
+## Relative contribution of this target to weighted group calculations.
 @export var weight: float = 1.0
-## Sets the radius used by this type.
+## Extra radius in meters included around this target in group bounds.
 @export var radius: float = 0.0
 var target: Node3D
 
-## Resolves the target node from the supplied scene root.
+## Resolves target_path against root and returns the referenced Node3D.
 func resolve(root: Node) -> Node3D:
 	if target == null and not target_path.is_empty():
 		target = root.get_node_or_null(target_path) as Node3D

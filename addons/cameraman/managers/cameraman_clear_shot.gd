@@ -1,21 +1,20 @@
 @tool
 class_name CameramanClearShot
-## Provides the clear shot camera manager.
-## Key properties include `activate_after`, `min_duration`, `randomize_choice`, which configure its behavior.
+## Camera manager that selects the highest-quality eligible child after optional hold times.
 extends CameramanCameraManagerBase
 
-## Configures the activate after used by this type.
+## Seconds a candidate must remain best before activation.
 @export var activate_after: float = 0.0
-## Configures the min duration used by this type.
+## Minimum seconds the selected child remains active before another switch.
 @export var min_duration: float = 0.0
-## Configures the randomize choice used by this type.
+## Randomizes equal-quality choices instead of retaining the first one.
 @export var randomize_choice: bool = false
 
 var _candidate: CameramanVirtualCameraBase
 var _candidate_time: float = 0.0
 var _selected_time: float = 0.0
 
-## Chooses the child camera for the current update.
+## Chooses the eligible child with the highest shot-quality score after hold rules.
 func choose_current_camera(_world_up: Vector3, delta: float) -> CameramanVirtualCameraBase:
 	var children: Array[CameramanVirtualCameraBase] = get_child_cameras()
 	if children.is_empty():

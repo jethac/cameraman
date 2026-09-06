@@ -1,6 +1,6 @@
 @tool
 class_name CameramanCameraState
-## Stores raw camera values, corrections, final output values, and custom blendable state.
+## Stores raw values, corrections, final output values, and custom blendable state for one frame.
 extends RefCounted
 
 static var aspect_ratio: float = 16.0 / 9.0
@@ -17,25 +17,25 @@ var shot_quality: float = 1.0
 var blend_hint: int = 0
 var custom_blendables: Array[Dictionary] = []
 
-## Returns whether the state has a look-at target.
+## Returns true when the state contains a valid corrected look-at target.
 func has_look_at() -> bool:
 	return is_finite(reference_look_at.x) and is_finite(reference_look_at.y) and is_finite(reference_look_at.z)
 
-## Returns the position after all state corrections.
+## Returns raw_position plus position_correction.
 func get_final_position() -> Vector3:
 	return raw_position + position_correction
 
-## Returns the orientation after all state corrections.
+## Returns raw_orientation composed with orientation_correction.
 func get_final_orientation() -> Quaternion:
 	return (raw_orientation * orientation_correction).normalized()
 
-## Returns the corrected look-at point.
+## Returns look_at plus look_at_correction when a look-at target exists.
 func get_corrected_look_at() -> Vector3:
 	if not has_look_at():
 		return CameramanCore.NO_POINT
 	return reference_look_at + position_correction
 
-## Adds a custom blendable value to the camera state.
+## Stores a blendable value and weight for custom state interpolation.
 func add_custom_blendable(object: Object, weight: float) -> void:
 	if object == null or custom_blendables.size() >= 8:
 		return

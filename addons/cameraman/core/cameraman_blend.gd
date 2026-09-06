@@ -1,6 +1,6 @@
 @tool
 class_name CameramanBlend
-## Provides the blend runtime helper.
+## Maintains an active transition between two camera state sources.
 extends RefCounted
 
 var cam_a: Object
@@ -26,25 +26,24 @@ func _init(
 	curve = definition.get_curve()
 	duration = definition.blend_time()
 
-## Returns the current blend weight.
+## Returns normalized transition progress after applying the blend curve.
 func blend_weight() -> float:
 	if duration <= 0.0:
 		return 1.0
 	return curve.sample(clampf(time_in_blend / duration, 0.0, 1.0))
 
-## Returns whether this blend has completed.
+## Returns true once elapsed time reaches the definition duration.
 func is_complete() -> bool:
 	return duration <= 0.0 or time_in_blend >= duration
 
-## Returns whether this object is valid for evaluation.
 func is_valid() -> bool:
 	return cam_a != null and cam_b != null and cam_a.is_valid() and cam_b.is_valid()
 
-## Returns whether this blend includes the supplied camera.
+## Returns true when either endpoint or nested source contains the supplied camera.
 func uses(camera: Object) -> bool:
 	return _source_uses(cam_a, camera) or _source_uses(cam_b, camera)
 
-## Updates the state.
+## Evaluates both endpoints and interpolates their states for the current frame.
 func update_state(
 	world_up: Vector3,
 	delta: float,
@@ -60,7 +59,6 @@ func update_state(
 		time_in_blend += maxf(delta, 0.0)
 	_state = custom_blender.blend(_state_a, _state_b, blend_weight())
 
-## Returns the latest evaluated camera state.
 func get_state() -> CameramanCameraState:
 	if _state == null:
 		if cam_a != null and cam_b != null:
@@ -69,7 +67,6 @@ func get_state() -> CameramanCameraState:
 			_state = CameramanCameraState.create_default()
 	return _state
 
-## Returns a human-readable description.
 func description() -> String:
 	return "%s -> %s (%.0f%%)" % [
 		_source_description(cam_a),

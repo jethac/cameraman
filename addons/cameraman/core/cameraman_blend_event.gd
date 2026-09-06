@@ -1,6 +1,6 @@
 @tool
 class_name CameramanBlendEvent
-## Provides the blend event runtime helper.
+## Describes a blend that has started between two camera sources.
 extends RefCounted
 
 var origin: Node

@@ -1,6 +1,6 @@
 @tool
 class_name CameramanInspectorPlugin
-## Provides the inspector plugin Godot editor integration.
+## Adds Cameraman-specific inspector controls and editor actions.
 extends EditorInspectorPlugin
 
 func _can_handle(object: Object) -> bool:

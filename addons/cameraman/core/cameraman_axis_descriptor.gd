@@ -1,6 +1,6 @@
 @tool
 class_name CameramanAxisDescriptor
-## Provides the axis descriptor runtime helper.
+## Describes an input axis binding used by camera components.
 extends RefCounted
 
 var axis: RefCounted

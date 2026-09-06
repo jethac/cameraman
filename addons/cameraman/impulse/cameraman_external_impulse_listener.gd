@@ -1,25 +1,23 @@
 @tool
 class_name CameramanExternalImpulseListener
-## Provides the external impulse listener scene node.
-## Key properties include `channel_mask`, `gain`, `use_2d_distance`, and related settings, which configure its
-## behavior.
+## Scene node that applies external impulse-manager signals to its transform.
 extends Node3D
 
-## Selects the physics layers or camera channels used by channel mask.
+## Impulses are accepted when their channel mask overlaps this mask.
 @export_flags_3d_physics var channel_mask: int = 1
-## Configures the gain used by this type.
+## Multiplies the complete external impulse correction.
 @export var gain: float = 1.0
-## Sets the use 2d distance used by this type.
+## Ignores vertical distance when evaluating impulse attenuation.
 @export var use_2d_distance: bool = false
-## Configures the use camera space used by this type.
+## Applies impulse corrections in the listener camera space.
 @export var use_camera_space: bool = false
-## Configures the amplitude gain used by this type.
+## Scales positional impulse correction.
 @export var amplitude_gain: float = 1.0
-## Configures the frequency gain used by this type.
+## Scales rotational impulse frequency.
 @export var frequency_gain: float = 1.0
-## Configures the duration used by this type.
+## Seconds the listener continues applying an impulse correction.
 @export var duration: float = 1.0
-## Configures the secondary noise profile used by this type.
+## Optional noise profile added after external impulse evaluation.
 @export var secondary_noise_profile: CameramanNoiseProfile
 
 var _reaction_time: float = 0.0

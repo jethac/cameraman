@@ -1,19 +1,17 @@
 @tool
 class_name CameramanConfiner2D
-## Constrains camera state inside a 2D bounding shape during the extension pipeline.
-## Key properties include `bounding_shape`, `damping`, `slowing_distance`, and related settings, which configure its
-## behavior.
+## FINALIZE-stage extension that constrains a 2D camera window inside a shape.
 extends CameramanExtension
 
-## Selects the bounding shape behavior.
+## NodePath to the CollisionShape2D or shape source defining camera bounds.
 @export var bounding_shape: NodePath
-## Controls the damping applied to damping.
+## Per-axis seconds used when approaching the confiner boundary.
 @export var damping: Vector2 = Vector2.ZERO
-## Sets the slowing distance used by this type.
+## Distance in pixels from a boundary where damping begins to increase.
 @export var slowing_distance: float = 0.0
-## Sets the oversize window used by this type.
+## Allows the camera window to exceed bounds when the viewport is larger.
 @export var oversize_window: bool = true
-## Sets the max window size used by this type.
+## Maximum window size used when oversize_window is enabled.
 @export var max_window_size: Vector2 = Vector2.ZERO
 
 var _cached_polygon: PackedVector2Array = PackedVector2Array()
@@ -21,7 +19,6 @@ var _cached_window: Vector2 = Vector2(-1.0, -1.0)
 var _cached_oversized: bool = false
 var _cache_valid: bool = false
 
-## Applies extension behavior after the specified pipeline stage.
 func post_pipeline_stage_callback(
 	camera: Node,
 	stage: CameramanCore.Stage,
@@ -44,7 +41,7 @@ func post_pipeline_stage_callback(
 	)
 	state.position_correction += Vector3(correction.x * weight.x, correction.y * weight.y, 0.0)
 
-## Invalidates cached 2D bounds geometry.
+## Clears cached polygon and rectangle data after the bounds shape changes.
 func invalidate_bounding_shape_cache() -> void:
 	_cache_valid = false
 	_cached_window = Vector2(-1.0, -1.0)

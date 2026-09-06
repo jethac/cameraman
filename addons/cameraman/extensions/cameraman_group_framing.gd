@@ -1,32 +1,29 @@
 @tool
 class_name CameramanGroupFraming
-## Provides the group framing camera pipeline extension.
-## Key properties include `framing_mode`, `framing_size`, `center_offset`, and related settings, which configure its
-## behavior.
+## FINALIZE-stage extension that fits a target group by zooming or moving laterally.
 extends CameramanExtension
 
 enum FramingMode { HORIZONTAL, VERTICAL, HORIZONTAL_AND_VERTICAL }
 enum SizeAdjustment { ZOOM_ONLY, DOLLY_ONLY, DOLLY_THEN_ZOOM }
 enum LateralAdjustment { CHANGE_POSITION, CHANGE_ROTATION }
 
-## Selects the framing mode behavior.
+## Selects whether horizontal, vertical, or both axes are fitted.
 @export var framing_mode: FramingMode = FramingMode.HORIZONTAL_AND_VERTICAL
-## Sets the framing size used by this type.
+## Desired normalized margin around the framed target group.
 @export var framing_size: float = 1.0
-## Configures the center offset used by this type.
+## Normalized viewport offset applied to the group center.
 @export var center_offset: Vector2 = Vector2.ZERO
-## Controls the damping applied to damping.
+## Seconds used to smooth framing position and lens changes.
 @export var damping: float = 0.0
-## Sets the size adjustment used by this type.
+## Selects zoom-only or position-and-zoom fitting.
 @export var size_adjustment: SizeAdjustment = SizeAdjustment.ZOOM_ONLY
-## Configures the lateral adjustment used by this type.
+## Selects whether lateral framing changes position or lens.
 @export var lateral_adjustment: LateralAdjustment = LateralAdjustment.CHANGE_POSITION
-## Configures the fov range used by this type.
+## Minimum and maximum field of view allowed during fitting.
 @export var fov_range: Vector2 = Vector2(1.0, 179.0)
-## Configures the dolly range used by this type.
+## Minimum and maximum camera distance allowed during fitting.
 @export var dolly_range: Vector2 = Vector2(0.0, 100.0)
 
-## Applies extension behavior after the specified pipeline stage.
 func post_pipeline_stage_callback(
 	camera: Node,
 	stage: CameramanCore.Stage,

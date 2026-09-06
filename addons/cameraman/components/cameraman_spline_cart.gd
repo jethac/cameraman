@@ -1,19 +1,17 @@
 @tool
 class_name CameramanSplineCart
-## Provides the spline cart scene node.
-## Key properties include `spline`, `path_position`, `position_units`, and related settings, which configure its
-## behavior.
+## Moves a Node3D along a Path3D curve each process frame.
 extends Node3D
 
 enum PositionUnits { DISTANCE, NORMALIZED, KNOT }
 
-## Configures the spline used by this type.
+## Path3D whose baked curve supplies the cart transform.
 @export var spline: Path3D
-## Configures the path position used by this type.
+## Position along the path, measured in meters or normalized units by position_units.
 @export var path_position: float = 0.0
-## Configures the position units used by this type.
+## Selects distance or normalized interpretation for path_position.
 @export var position_units: PositionUnits = PositionUnits.DISTANCE
-## Configures the speed used by this type.
+## Path units advanced per process second.
 @export var speed: float = 0.0
 
 func _process(delta: float) -> void:

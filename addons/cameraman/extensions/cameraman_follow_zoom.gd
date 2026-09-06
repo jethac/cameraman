@@ -1,19 +1,17 @@
 @tool
 class_name CameramanFollowZoom
-## Provides the follow zoom camera pipeline extension.
-## Key properties include `width`, `damping`, `min_fov`, and related settings, which configure its behavior.
+## FINALIZE-stage extension that adjusts field of view from target framing width.
 extends CameramanExtension
 
-## Configures the width used by this type.
+## Desired target width in normalized viewport units.
 @export var width: float = 1.0
-## Controls the damping applied to damping.
+## Seconds used to smooth field-of-view changes.
 @export var damping: float = 0.0
-## Configures the min fov used by this type.
+## Lower field-of-view limit in degrees.
 @export var min_fov: float = 1.0
-## Configures the max fov used by this type.
+## Upper field-of-view limit in degrees.
 @export var max_fov: float = 179.0
 
-## Applies extension behavior after the specified pipeline stage.
 func post_pipeline_stage_callback(
 	_camera: Node,
 	stage: CameramanCore.Stage,

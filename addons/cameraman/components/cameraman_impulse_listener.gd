@@ -1,36 +1,32 @@
 @tool
 class_name CameramanImpulseListener
-## Applies impulse events to a camera during the impulse pipeline stage.
-## Key properties include `channel_mask`, `gain`, `use_2d_distance`, and related settings, which configure its
-## behavior.
+## NOISE-stage component that applies impulse-manager signals to camera position and orientation.
 extends CameramanComponent
 
-## Selects the physics layers or camera channels used by channel mask.
+## Impulses are accepted when their channel mask overlaps this mask.
 @export_flags_3d_physics var channel_mask: int = 1
-## Configures the gain used by this type.
+## Multiplies the complete impulse signal before writing camera corrections.
 @export var gain: float = 1.0
-## Sets the use 2d distance used by this type.
+## Ignores vertical distance when evaluating impulse attenuation.
 @export var use_2d_distance: bool = false
-## Configures the use camera space used by this type.
+## Rotates the received impulse correction into camera space before applying it.
 @export var use_camera_space: bool = false
-## Configures the apply after used by this type.
+## Applies the impulse after the selected pipeline stage when enabled.
 @export var apply_after: CameramanCore.Stage = CameramanCore.Stage.NOISE
-## Configures the amplitude gain used by this type.
+## Scales the position component of each impulse signal.
 @export var amplitude_gain: float = 1.0
-## Configures the frequency gain used by this type.
+## Scales the rotational component frequency of each impulse signal.
 @export var frequency_gain: float = 1.0
-## Configures the duration used by this type.
+## Limits how long the listener retains its impulse correction after an event.
 @export var duration: float = 1.0
-## Configures the secondary noise profile used by this type.
+## Adds optional noise channels to the listener after the impulse signal.
 @export var secondary_noise_profile: CameramanNoiseProfile
 
 var _reaction_time: float = 0.0
 
-## Returns the pipeline stage handled by this type.
 func stage() -> CameramanCore.Stage:
 	return apply_after
 
-## Applies this component's camera-state mutation for the current pipeline step.
 func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	if delta >= 0.0:
 		_reaction_time = maxf(_reaction_time - delta, 0.0)

@@ -1,6 +1,6 @@
 @tool
 class_name CameramanComposerMath
-## Provides the composer math runtime helper.
+## Provides camera-space projection, composition, and orientation helpers for framing components.
 extends RefCounted
 
 static func project_screen_offset(

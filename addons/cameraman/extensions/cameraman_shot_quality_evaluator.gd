@@ -1,15 +1,13 @@
 @tool
 class_name CameramanShotQualityEvaluator
-## Provides the shot quality evaluator camera pipeline extension.
-## Key properties include `optimal_distance`, `target_visible`, which configure its behavior.
+## FINALIZE-stage extension that evaluates target visibility and preferred camera distance.
 extends CameramanExtension
 
-## Sets the optimal distance used by this type.
+## Minimum and maximum target distance that receive full quality.
 @export var optimal_distance: Vector2 = Vector2(1.0, 20.0)
-## Specifies the target used by target visible.
+## Current visibility result written by the evaluator after each stage.
 @export var target_visible: bool = true
 
-## Applies extension behavior after the specified pipeline stage.
 func post_pipeline_stage_callback(
 	camera: Node,
 	stage: CameramanCore.Stage,

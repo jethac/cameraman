@@ -1,7 +1,6 @@
 @tool
 class_name CameramanFreeLookModifier
-## Provides the free look modifier camera pipeline extension.
-## Key properties include `modifiers`, `modifier_resources`, which configure its behavior.
+## PRE-stage extension that interpolates camera values across a vertical free-look range.
 extends CameramanExtension
 
 class Modifier extends Resource:
@@ -29,13 +28,10 @@ class TiltModifier extends Modifier:
 class CompositionModifier extends Modifier:
 	var kind: int = 5
 
-## Configures the modifiers used by this type.
 @export var modifiers: Array[CameramanFreeLookModifierEntry] = []
-## Configures the modifier resources used by this type.
 @export var modifier_resources: Array[Modifier] = []
 var _restores: Array[Dictionary] = []
 
-## Applies this extension before the component pipeline runs.
 func pre_pipeline_mutate_camera_state(
 	camera: Node,
 	state: CameramanCameraState,
@@ -103,7 +99,6 @@ func pre_pipeline_mutate_camera_state(
 						rotation_composer.composition.dead_zone_size * resource_value
 					)
 
-## Applies extension behavior after the specified pipeline stage.
 func post_pipeline_stage_callback(
 	_camera: Node,
 	stage: CameramanCore.Stage,

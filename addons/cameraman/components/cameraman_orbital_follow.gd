@@ -1,7 +1,6 @@
 @tool
 class_name CameramanOrbitalFollow
-## Provides the orbital follow camera pipeline component.
-## Key properties include `orbit_style`, `radius`, `top_height`, and related settings, which configure its behavior.
+## BODY-stage component that places a camera on a configurable orbit around its follow target.
 extends CameramanComponent
 
 enum OrbitStyle { SPHERE, THREE_RING }
@@ -14,39 +13,39 @@ enum RecenteringTarget {
 	LOOK_AT_TARGET_FORWARD
 }
 
-## Configures the orbit style used by this type.
+## Selects spherical, three-ring, or custom orbital radius behavior.
 @export var orbit_style: OrbitStyle = OrbitStyle.SPHERE
-## Sets the radius used by this type.
+## Radius in meters for spherical orbital mode.
 @export var radius: float = 5.0
-## Configures the top height used by this type.
+## Vertical position in meters of the top orbital ring.
 @export var top_height: float = 3.0
-## Sets the top radius used by this type.
+## Horizontal radius in meters of the top orbital ring.
 @export var top_radius: float = 4.0
-## Configures the center height used by this type.
+## Vertical position in meters of the center orbital ring.
 @export var center_height: float = 0.0
-## Sets the center radius used by this type.
+## Horizontal radius in meters of the center orbital ring.
 @export var center_radius: float = 5.0
-## Configures the bottom height used by this type.
+## Vertical position in meters of the bottom orbital ring.
 @export var bottom_height: float = -3.0
-## Sets the bottom radius used by this type.
+## Horizontal radius in meters of the bottom orbital ring.
 @export var bottom_radius: float = 4.0
-## Configures the spline curvature used by this type.
+## Curvature applied between the configured orbital rings.
 @export_range(0.0, 1.0) var spline_curvature: float = 0.5
-## Configures the horizontal axis used by this type.
+## Input axis controlling horizontal orbital angle.
 @export var horizontal_axis: CameramanInputAxis
-## Configures the vertical axis used by this type.
+## Input axis controlling vertical orbital position.
 @export var vertical_axis: CameramanInputAxis
-## Configures the radial axis used by this type.
+## Input axis controlling orbital radius or ring interpolation.
 @export var radial_axis: CameramanInputAxis
-## Specifies the target used by target offset.
+## Target-relative offset added before evaluating the orbital point.
 @export var target_offset: Vector3 = Vector3.ZERO
-## Selects the binding mode behavior.
+## Selects whether orbital offsets follow target rotation or remain world-aligned.
 @export var binding_mode: CameramanTargetTracker.BindingMode = (
 	CameramanTargetTracker.BindingMode.LOCK_TO_TARGET_WITH_WORLD_UP
 )
-## Controls the damping applied to position.
+## Seconds to reach about 63% of the orbital position per axis; zero snaps immediately.
 @export var position_damping: Vector3 = Vector3.ZERO
-## Specifies the target used by recentering target.
+## Selects the orbital axis value returned toward its center after input stops.
 @export var recentering_target: RecenteringTarget = RecenteringTarget.AXIS_CENTER
 
 var _assigned_target: Node3D
@@ -63,11 +62,9 @@ func _init() -> void:
 	radial_axis.range = Vector2(1.0, 5.0)
 	radial_axis.value = radius
 
-## Returns the pipeline stage handled by this type.
 func stage() -> CameramanCore.Stage:
 	return CameramanCore.Stage.BODY
 
-## Applies this component's camera-state mutation for the current pipeline step.
 func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	var target: Node3D = follow_target
 	if _assigned_target != target:
@@ -92,7 +89,7 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	else:
 		state.raw_position += CameramanDamper.damp_vector(desired - state.raw_position, position_damping, delta)
 
-## Returns the camera point.
+## Returns the orbit point after axis values, radius, and target binding are applied.
 func get_camera_point() -> Vector3:
 	var horizontal: float = deg_to_rad(horizontal_axis.value)
 	var vertical: float = deg_to_rad(vertical_axis.value)
@@ -126,7 +123,7 @@ func get_camera_point() -> Vector3:
 		radial_direction.z * ring_point.z
 	)
 
-## Returns the input axes.
+## Exposes horizontal, vertical, and radial axes to input controllers.
 func get_input_axes() -> Array[Dictionary]:
 	return [
 		{"name": "horizontal", "axis": horizontal_axis, "owner": self},
@@ -134,7 +131,7 @@ func get_input_axes() -> Array[Dictionary]:
 		{"name": "radial", "axis": radial_axis, "owner": self}
 	]
 
-## Forces the camera and its pipeline state to a position and rotation.
+## Reconstructs orbital axis values from an externally forced camera position.
 func force_camera_position(position: Vector3, _rotation: Quaternion) -> void:
 	var target: Node3D = follow_target
 	if target == null:
@@ -146,7 +143,6 @@ func force_camera_position(position: Vector3, _rotation: Quaternion) -> void:
 	horizontal_axis.value = rad_to_deg(atan2(local.x, local.z))
 	vertical_axis.value = rad_to_deg(asin(clampf(local.y / radial_axis.value, -1.0, 1.0)))
 
-## Handles the transition from camera event.
 func on_transition_from_camera(from: Object, _world_up: Vector3, _delta: float) -> bool:
 	if (
 		vcam == null
@@ -159,7 +155,6 @@ func on_transition_from_camera(from: Object, _world_up: Vector3, _delta: float) 
 	force_camera_position(previous.get_final_position(), previous.get_final_orientation())
 	return true
 
-## Handles the target object warped event.
 func on_target_object_warped(target: Node3D, delta: Vector3) -> void:
 	if target == follow_target:
 		var camera_position: Vector3 = vcam.call("get_state").get_final_position()

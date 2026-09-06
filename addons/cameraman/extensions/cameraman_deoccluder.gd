@@ -1,46 +1,43 @@
 @tool
 class_name CameramanDeoccluder
-## Adjusts camera position when geometry occludes the tracked target.
-## Key properties include `collide_against`, `ignore_group`, `transparent_groups`, and related settings, which
-## configure its behavior.
+## FINALIZE-stage extension that pulls or moves the camera when the target is occluded.
 extends CameramanExtension
 
 enum Strategy { PULL_CAMERA_FORWARD, PRESERVE_CAMERA_HEIGHT, PRESERVE_CAMERA_DISTANCE }
 
-## Configures the collide against used by this type.
+## Physics layers considered occluders during target visibility tests.
 @export_flags_3d_physics var collide_against: int = 1
-## Configures the ignore group used by this type.
+## Occluder bodies in this group are skipped during visibility tests.
 @export var ignore_group: StringName
-## Configures the transparent groups used by this type.
+## Groups whose bodies are treated as transparent to the target ray.
 @export var transparent_groups: Array[StringName] = []
-## Specifies the target used by minimum distance from target.
+## Minimum camera distance in meters when an occluder blocks the path.
 @export var minimum_distance_from_target: float = 0.1
-## Configures the avoid obstacles enabled used by this type.
+## Enables camera movement around or through detected occluders.
 @export var avoid_obstacles_enabled: bool = true
-## Sets the distance limit used by this type.
+## Maximum distance in meters that deocclusion may move the camera.
 @export var distance_limit: float = 0.0
-## Sets the camera radius used by this type.
+## Sphere-cast radius in meters; zero uses a ray.
 @export var camera_radius: float = 0.0
-## Selects the strategy behavior.
+## Selects whether the camera pulls forward or shifts around an occluder.
 @export var strategy: Strategy = Strategy.PULL_CAMERA_FORWARD
-## Configures the maximum effort used by this type.
+## Maximum number of candidate corrections tested per frame.
 @export var maximum_effort: int = 4
-## Configures the smoothing time used by this type.
+## Seconds used to smooth deocclusion position changes.
 @export var smoothing_time: float = 0.0
-## Controls the damping applied to damping.
+## Seconds used when the camera returns from an occluded correction.
 @export var damping: float = 0.0
-## Controls the damping applied to damping when occluded.
+## Seconds used while an occluder remains between camera and target.
 @export var damping_when_occluded: float = 0.0
-## Configures the shot quality enabled used by this type.
+## Includes visibility and distance in the extension quality score.
 @export var shot_quality_enabled: bool = true
-## Sets the optimal distance used by this type.
+## Minimum and maximum distance range considered optimal for quality.
 @export var optimal_distance: Vector2 = Vector2(1.0, 20.0)
-## Configures the max quality boost used by this type.
+## Maximum quality bonus awarded to a clear, well-framed shot.
 @export var max_quality_boost: float = 1.0
 
 var _occluded: bool = false
 
-## Applies extension behavior after the specified pipeline stage.
 func post_pipeline_stage_callback(
 	camera: Node,
 	stage: CameramanCore.Stage,
@@ -87,7 +84,7 @@ func post_pipeline_stage_callback(
 			quality *= 0.05
 		state.shot_quality = clampf(quality * max_quality_boost, 0.0, 1.0)
 
-## Returns whether the camera view is currently occluded.
+## Reports the last visibility result from the deocclusion ray or shape cast.
 func is_occluded() -> bool:
 	return _occluded
 

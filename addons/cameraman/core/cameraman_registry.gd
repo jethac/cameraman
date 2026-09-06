@@ -1,6 +1,6 @@
 @tool
 class_name CameramanRegistry
-## Tracks registered virtual cameras and maintains cached priority ordering for selection.
+## Tracks registered virtual cameras and caches priority ordering for selection.
 extends RefCounted
 
 var _cameras: Array[Node3D] = []
@@ -12,7 +12,6 @@ var _sorted: Array[Node3D] = []
 var _sorted_keys: PackedInt64Array = PackedInt64Array()
 var _sorted_dirty: bool = true
 
-## Adds a camera to the registry.
 func add(camera: Node3D) -> void:
 	if not _cameras.has(camera):
 		_cameras.append(camera)
@@ -20,7 +19,6 @@ func add(camera: Node3D) -> void:
 	_activation_sequence[camera] = _sequence
 	_sorted_dirty = true
 
-## Removes a camera from the registry.
 func remove(camera: Node3D) -> void:
 	_cameras.erase(camera)
 	_activation_sequence.erase(camera)
@@ -28,7 +26,6 @@ func remove(camera: Node3D) -> void:
 	_last_updated_frame.erase(camera)
 	_sorted_dirty = true
 
-## Marks a camera as recently activated.
 func mark_activated(camera: Node3D) -> void:
 	_sequence += 1
 	_activation_sequence[camera] = _sequence
@@ -37,6 +34,7 @@ func mark_activated(camera: Node3D) -> void:
 ## Cameras ordered by effective priority (desc), then most recently activated.
 ## The order is cached and only re-sorted when a priority or activation changes,
 ## so per-frame callers pay O(n) priority reads instead of an O(n log n) sort.
+## Returns cached cameras ordered by effective priority, then activation recency.
 func get_cameras() -> Array[Node3D]:
 	var count: int = _cameras.size()
 	var keys: PackedInt64Array = PackedInt64Array()
@@ -57,7 +55,7 @@ func get_cameras() -> Array[Node3D]:
 		_sorted_dirty = false
 	return _sorted.duplicate()
 
-## Returns the top camera.
+## Returns the highest-priority enabled camera matching channel_mask and brain.
 func get_top_camera(channel_mask: int, brain: Node) -> Node3D:
 	for camera in get_cameras():
 		if not camera.call("is_enabled") or (int(camera.get("output_channel")) & channel_mask) == 0:
@@ -68,7 +66,7 @@ func get_top_camera(channel_mask: int, brain: Node) -> Node3D:
 		return camera
 	return null
 
-## Updates the camera.
+## Updates one standby camera and records whether its state changed.
 func update_camera(
 	camera: Node3D,
 	world_up: Vector3,

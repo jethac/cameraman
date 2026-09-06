@@ -1,6 +1,6 @@
 @tool
 class_name CameramanGizmoPlugin
-## Provides the gizmo plugin Godot editor integration.
+## Draws the editable CameramanCamera frustum in the Godot 3D editor.
 extends EditorNode3DGizmoPlugin
 
 func _init() -> void:

@@ -1,34 +1,32 @@
 @tool
 class_name CameramanRotationComposer
-## Aims the camera toward its target while placing it at the configured screen composition.
-## Key properties include `target_offset`, `lookahead_enabled`, `lookahead_time`, and related settings, which
-## configure its behavior.
+## AIM-stage component that aims toward the target while applying screen-space composition.
 extends CameramanComponent
 
-## Specifies the target used by target offset.
+## Point offset from the target used when computing look direction.
 @export var target_offset: Vector3 = Vector3.ZERO
-## Configures the lookahead enabled used by this type.
+## Aims at predicted target motion instead of only the current target point.
 @export var lookahead_enabled: bool = false
-## Configures the lookahead time used by this type.
+## Prediction horizon in seconds for aiming ahead of the target.
 @export var lookahead_time: float = 0.0
-## Configures the lookahead smoothing used by this type.
+## Damping in seconds applied to lookahead target motion.
 @export var lookahead_smoothing: float = 0.0
-## Controls the damping applied to damping.
+## Seconds to reach about 63% of desired orientation per axis; zero snaps immediately.
 @export var damping: Vector2 = Vector2.ZERO
-## Configures the composition used by this type.
+## Screen-space target placement used to derive the desired orientation.
 @export var composition: CameramanScreenComposerSettings
-## Configures the center on activate used by this type.
+## Temporarily centers the target on the first valid frame after activation.
 @export var center_on_activate: bool = false
 var _lookahead: CameramanLookahead = CameramanLookahead.new()
 
 func _init() -> void:
 	composition = CameramanScreenComposerSettings.new()
 
-## Returns the pipeline stage handled by this type.
 func stage() -> CameramanCore.Stage:
 	return CameramanCore.Stage.AIM
 
-## Applies this component's camera-state mutation for the current pipeline step.
+## Computes orientation from corrected position and composition, with a safe behind-camera
+## fallback.
 func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	if not state.has_look_at():
 		return

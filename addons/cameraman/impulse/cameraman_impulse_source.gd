@@ -1,23 +1,22 @@
 @tool
 class_name CameramanImpulseSource
-## Generates impulse events from configured definitions and source velocities.
-## Key properties include `impulse_definition`, `default_velocity`, which configure its behavior.
+## Scene node that creates impulse events from a configured definition.
 extends Node3D
 
-## Configures the impulse definition used by this type.
+## Definition cloned when this source creates an impulse event.
 @export var impulse_definition: CameramanImpulseDefinition
-## Configures the default velocity used by this type.
+## Velocity used by generate_impulse when no explicit velocity is supplied.
 @export var default_velocity: Vector3 = Vector3.ZERO
 
-## Generates and dispatches an impulse event.
+## Generates an event at the source using default_velocity.
 func generate_impulse() -> CameramanImpulseEvent:
 	return generate_impulse_at(global_position, default_velocity)
 
-## Generates an impulse event using the supplied velocity.
+## Generates an event at the source using the supplied velocity.
 func generate_impulse_with_velocity(velocity: Vector3) -> CameramanImpulseEvent:
 	return generate_impulse_at(global_position, velocity)
 
-## Generates an impulse event at the supplied position.
+## Generates an event at position using the supplied velocity.
 func generate_impulse_at(position: Vector3, velocity: Vector3) -> CameramanImpulseEvent:
 	if impulse_definition == null:
 		return null
@@ -28,6 +27,6 @@ func generate_impulse_at(position: Vector3, velocity: Vector3) -> CameramanImpul
 	manager.add_impulse_event(event)
 	return event
 
-## Generates an impulse event from the supplied force.
+## Generates an event using force converted to source impulse velocity.
 func generate_impulse_with_force(force: Vector3) -> CameramanImpulseEvent:
 	return generate_impulse_with_velocity(force)

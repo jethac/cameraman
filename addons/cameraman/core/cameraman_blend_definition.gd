@@ -1,12 +1,11 @@
 @tool
 class_name CameramanBlendDefinition
-## Describes transition style, duration, and curve settings used when blending camera states.
-## Key properties include `style`, `time`, `custom_curve`, which configure its behavior.
+## Describes blend style, duration, and optional curve for camera transitions.
 extends Resource
 
 enum Style { CUT, EASE_IN_OUT, EASE_IN, EASE_OUT, HARD_IN, HARD_OUT, LINEAR, CUSTOM }
 
-## Configures the style used by this type.
+## Selects linear, ease, or custom curve weighting for the transition.
 @export var style: Style:
 	get:
 		return _style
@@ -14,9 +13,9 @@ enum Style { CUT, EASE_IN_OUT, EASE_IN, EASE_OUT, HARD_IN, HARD_OUT, LINEAR, CUS
 		_style = value
 		_cached_curve = null
 
-## Configures the time used by this type.
+## Transition duration in seconds; zero or less produces a cut.
 @export var time: float = 2.0
-## Configures the custom curve used by this type.
+## Optional Curve sampled when style selects a custom blend.
 @export var custom_curve: Curve:
 	get:
 		return _custom_curve
@@ -28,11 +27,11 @@ var _style: Style = Style.EASE_IN_OUT
 var _custom_curve: Curve
 var _cached_curve: Curve
 
-## Returns the duration of this blend.
+## Returns non-negative transition duration; zero means cut immediately.
 func blend_time() -> float:
 	return 0.0 if style == Style.CUT else maxf(time, 0.0)
 
-## Returns the curve.
+## Provides the cached curve that maps linear progress to blend weight.
 func get_curve() -> Curve:
 	if _cached_curve != null:
 		return _cached_curve

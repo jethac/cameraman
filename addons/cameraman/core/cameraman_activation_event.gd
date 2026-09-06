@@ -1,6 +1,6 @@
 @tool
 class_name CameramanActivationEvent
-## Provides the activation event runtime helper.
+## Describes a camera activation or deactivation, including whether the transition was a cut.
 extends RefCounted
 
 var origin: Node

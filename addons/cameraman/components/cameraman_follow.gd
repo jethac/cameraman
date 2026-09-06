@@ -1,8 +1,6 @@
 @tool
 class_name CameramanFollow
-## Provides the follow camera pipeline component.
-## Key properties include `follow_offset`, `binding_mode`, `position_damping`, and related settings, which configure
-## its behavior.
+## BODY-stage component that follows a target with configurable offset, binding mode, and damping.
 extends CameramanComponent
 
 enum BindingMode {
@@ -15,17 +13,17 @@ enum BindingMode {
 }
 enum AngularDampingMode { EULER, QUATERNION }
 
-## Configures the follow offset used by this type.
+## Offset from the target; interpreted in world or target space by binding_mode.
 @export var follow_offset: Vector3 = Vector3.ZERO
-## Selects the binding mode behavior.
+## Selects how target rotation and offset space are retained while following.
 @export var binding_mode: BindingMode = BindingMode.LOCK_TO_TARGET_WITH_WORLD_UP
-## Controls the damping applied to position.
+## Seconds to reach about 63% of the target position per axis; zero snaps immediately.
 @export var position_damping: Vector3 = Vector3.ZERO
-## Controls the damping applied to rotation.
+## Seconds to reach about 63% of the target Euler rotation per axis; zero snaps immediately.
 @export var rotation_damping: Vector3 = Vector3.ZERO
-## Controls the damping applied to angular mode.
+## Chooses Euler-axis or quaternion interpolation for rotation damping.
 @export var angular_damping_mode: AngularDampingMode = AngularDampingMode.EULER
-## Controls the damping applied to quaternion.
+## Seconds used by quaternion rotation damping; zero reaches the target immediately.
 @export var quaternion_damping: float = 0.0
 
 var _assigned_basis: Basis
@@ -34,11 +32,9 @@ var _assigned_captured: bool = false
 var _previous_position: Vector3
 var _previous_rotation: Quaternion = Quaternion.IDENTITY
 
-## Returns the pipeline stage handled by this type.
 func stage() -> CameramanCore.Stage:
 	return CameramanCore.Stage.BODY
 
-## Applies this component's camera-state mutation for the current pipeline step.
 func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	if _assigned_target != follow_target:
 		_assigned_target = follow_target
@@ -115,17 +111,16 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	_previous_position = desired_position
 	_previous_rotation = desired_rotation
 
-## Handles the target object warped event.
+## Rebases stored follow position when the tracked target teleports.
 func on_target_object_warped(target: Node3D, delta: Vector3) -> void:
 	if target == follow_target:
 		_previous_position += delta
 
-## Forces the camera and its pipeline state to a position and rotation.
 func force_camera_position(position: Vector3, rotation: Quaternion) -> void:
 	_previous_position = position
 	_previous_rotation = rotation
 
-## Returns the longest damping time configured by this type.
+## Reports the longest configured position or rotation damping time.
 func get_max_damp_time() -> float:
 	return maxf(
 		CameramanDamper.max_damp_time(position_damping),

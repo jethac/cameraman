@@ -1,6 +1,6 @@
 @tool
 class_name CameramanPlugin
-## Provides the plugin Godot editor integration.
+## Registers Cameraman editor types, viewport overlays, gizmos, and preset creation actions.
 extends EditorPlugin
 
 const TYPES: Array[Dictionary] = [

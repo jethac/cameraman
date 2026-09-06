@@ -1,21 +1,19 @@
 @tool
 class_name CameramanConfiner3D
-## Constrains camera state inside a 3D bounding volume during the extension pipeline.
-## Key properties include `bounding_volume`, `damping`, `slowing_distance`, which configure its behavior.
+## FINALIZE-stage extension that constrains camera position inside a 3D volume.
 extends CameramanExtension
 
-## Configures the bounding volume used by this type.
+## NodePath to the 3D collision volume containing the camera.
 @export var bounding_volume: NodePath
-## Controls the damping applied to damping.
+## Per-axis seconds used when approaching a volume boundary.
 @export var damping: Vector3 = Vector3.ZERO
-## Sets the slowing distance used by this type.
+## Distance in meters from a boundary where damping begins to increase.
 @export var slowing_distance: float = 0.0
 
 var _cached_shape: Shape3D
 var _cached_faces: PackedVector3Array = PackedVector3Array()
 var _cached_planes: Array[Plane] = []
 
-## Applies extension behavior after the specified pipeline stage.
 func post_pipeline_stage_callback(
 	camera: Node,
 	stage: CameramanCore.Stage,
@@ -46,7 +44,7 @@ func post_pipeline_stage_callback(
 	)
 	state.position_correction += Vector3(correction.x * weight.x, correction.y * weight.y, correction.z * weight.z)
 
-## Invalidates cached volume geometry.
+## Clears cached volume geometry after the bounding node changes.
 func invalidate_cache() -> void:
 	_cached_shape = null
 	_cached_faces = PackedVector3Array()
