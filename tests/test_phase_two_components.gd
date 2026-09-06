@@ -44,6 +44,41 @@ func test_third_person_rig_follows_target_rotation() -> void:
 	assert_almost_eq(rig[1], target.global_position + target.global_basis * component.shoulder_offset, Vector3.ONE * 0.001)
 	assert_almost_eq(rig[2], rig[1] + target.global_basis * Vector3.UP, Vector3.ONE * 0.001)
 
+func test_third_person_follow_ignores_follow_target_collision() -> void:
+	var root: Node3D = Node3D.new()
+	var target: CharacterBody3D = CharacterBody3D.new()
+	target.add_to_group("player")
+	var target_shape: CollisionShape3D = CollisionShape3D.new()
+	var capsule: CapsuleShape3D = CapsuleShape3D.new()
+	capsule.radius = 0.45
+	capsule.height = 2.0
+	target_shape.shape = capsule
+	target.add_child(target_shape)
+	var camera: CameramanCamera = CameramanCamera.new()
+	camera.tracking_target = target
+	var follow: CameramanThirdPersonFollow = CameramanThirdPersonFollow.new()
+	follow.shoulder_offset = Vector3(0.6, 1.6, 0.0)
+	follow.vertical_arm_length = 0.3
+	follow.camera_distance = 4.5
+	var avoidance: CameramanObstacleAvoidance = CameramanObstacleAvoidance.new()
+	avoidance.enabled = true
+	avoidance.camera_radius = 0.3
+	avoidance.ignore_group = &"player"
+	follow.avoid_obstacles = avoidance
+	camera.add_child(follow)
+	root.add_child(target)
+	root.add_child(camera)
+	add_child_autofree(root)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	camera.update_state(Vector3.UP, 0.1)
+	var rig: Array[Vector3] = follow.get_rig_positions()
+	assert_almost_eq(
+		camera.get_state().raw_position.distance_to(rig[2]),
+		4.5,
+		0.01
+	)
+
 func test_orbital_on_assign_captures_identity_target_basis() -> void:
 	var root: Node = Node.new()
 	var target: Node3D = Node3D.new()
