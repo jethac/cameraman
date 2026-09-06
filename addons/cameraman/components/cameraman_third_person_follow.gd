@@ -26,7 +26,10 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	var root: Vector3 = target.global_position
 	var shoulder: Vector3 = root + target_rotation * side_offset
 	var hand: Vector3 = shoulder + target_rotation * Vector3(0.0, vertical_arm_length, 0.0)
-	var obstacle_path: Dictionary = _get_obstacle_path(root, hand, target_rotation, delta)
+	var centreline: Vector3 = root + target_rotation * Vector3(
+		0.0, side_offset.y + vertical_arm_length, side_offset.z
+	)
+	var obstacle_path: Dictionary = _get_obstacle_path(centreline, hand, target_rotation, delta)
 	var effective_hand: Vector3 = obstacle_path["hand"] as Vector3
 	var desired_distance: float = float(obstacle_path["distance"])
 	var desired: Vector3 = effective_hand + target_rotation * Vector3(0.0, 0.0, desired_distance)
