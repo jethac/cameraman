@@ -44,6 +44,10 @@ func internal_update_state(world_up: Vector3, delta: float) -> void:
 	var components: Array[CameramanComponent] = _get_components_sorted()
 	for component in components:
 		component.pre_pipeline_mutate_camera_state(state, delta)
+	var body_after_aim: bool = false
+	for component in components:
+		if component.stage() == CameramanCore.Stage.BODY and component.body_applies_after_aim():
+			body_after_aim = true
 	for stage_value in [
 		CameramanCore.Stage.BODY,
 		CameramanCore.Stage.AIM,
@@ -59,11 +63,13 @@ func internal_update_state(world_up: Vector3, delta: float) -> void:
 				)
 			):
 				component.mutate_camera_state(state, delta)
-				invoke_post_pipeline_stage_callback(stage_value, state, delta)
-	for component in components:
-		if component.stage() == CameramanCore.Stage.BODY and component.body_applies_after_aim():
-			component.mutate_camera_state(state, delta)
-			invoke_post_pipeline_stage_callback(CameramanCore.Stage.BODY, state, delta)
+		if not (stage_value == CameramanCore.Stage.BODY and body_after_aim):
+			invoke_post_pipeline_stage_callback(stage_value, state, delta)
+	if body_after_aim:
+		for component in components:
+			if component.stage() == CameramanCore.Stage.BODY and component.body_applies_after_aim():
+				component.mutate_camera_state(state, delta)
+		invoke_post_pipeline_stage_callback(CameramanCore.Stage.BODY, state, delta)
 	invoke_post_pipeline_stage_callback(CameramanCore.Stage.FINALIZE, state, delta)
 	_state = state
 	global_position = state.raw_position
