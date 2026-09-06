@@ -7,14 +7,19 @@ const DEMOS: Array[String] = [
 ]
 
 func _ready() -> void:
+	var list: VBoxContainer = VBoxContainer.new()
+	list.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	list.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	list.grow_vertical = Control.GROW_DIRECTION_BOTH
+	add_child(list)
 	var title: Label = Label.new()
 	title.text = "Cameraman demos"
-	add_child(title)
+	list.add_child(title)
 	for demo_name in DEMOS:
 		var button: Button = Button.new()
 		button.text = demo_name
 		button.pressed.connect(_open_demo.bind(demo_name))
-		add_child(button)
+		list.add_child(button)
 
 func _open_demo(demo_name: String) -> void:
 	get_tree().change_scene_to_file("res://demo/%s.tscn" % demo_name)
