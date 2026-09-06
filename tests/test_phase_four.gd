@@ -160,7 +160,7 @@ func test_plugin_script_and_demo_scenes_load() -> void:
 	assert_not_null(load("res://addons/cameraman/cameraman_plugin.gd"))
 	for demo_name in [
 		"third_person", "free_look", "platformer_2d", "dolly",
-		"clear_shot", "split_screen", "impulse", "sequence"
+		"clear_shot", "split_screen", "impulse", "sequence", "state_driven"
 	]:
 		var scene: PackedScene = load("res://demo/%s.tscn" % demo_name)
 		assert_not_null(scene)
@@ -173,3 +173,19 @@ func test_plugin_script_and_demo_scenes_load() -> void:
 		var brains: Array[Node] = instance.find_children("*", "CameramanBrain", true, false)
 		brains.append_array(instance.find_children("*", "CameramanBrain2D", true, false))
 		assert_gt(brains.size(), 0)
+		var lights: Array[Node] = instance.find_children("*", "DirectionalLight3D", true, false)
+		lights.append_array(instance.find_children("*", "DirectionalLight2D", true, false))
+		assert_gt(lights.size(), 0)
+		for brain_node in brains:
+			var brain: CameramanBrain = brain_node as CameramanBrain
+			if demo_name == "sequence":
+				assert_not_null(brain.current_camera_state, demo_name)
+			else:
+				assert_not_null(brain.active_virtual_camera, demo_name)
+		if demo_name == "platformer_2d":
+			await get_tree().process_frame
+			await get_tree().process_frame
+			var output: Camera2D = instance.get_node("OutputCamera") as Camera2D
+			var player: Node2D = instance.get_node("Level/PlatformerPlayer") as Node2D
+			assert_lt(output.global_position.distance_to(player.global_position), 200.0)
+	assert_true(FileAccess.file_exists("res://addons/cameraman/plugin.cfg"))

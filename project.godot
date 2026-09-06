@@ -15,27 +15,39 @@ run/main_scene="res://demo/main_menu.tscn"
 
 move_left={
 "deadzone": 0.5,
-"events": [Object(InputEventKey,"physical_keycode":65)]
+"events": [Object(InputEventKey,"physical_keycode":65), Object(InputEventKey,"physical_keycode":4194311)]
 }
 move_right={
 "deadzone": 0.5,
-"events": [Object(InputEventKey,"physical_keycode":68)]
+"events": [Object(InputEventKey,"physical_keycode":68), Object(InputEventKey,"physical_keycode":4194313)]
 }
 move_forward={
 "deadzone": 0.5,
-"events": [Object(InputEventKey,"physical_keycode":87)]
+"events": [Object(InputEventKey,"physical_keycode":87), Object(InputEventKey,"physical_keycode":4194320)]
 }
 move_back={
 "deadzone": 0.5,
-"events": [Object(InputEventKey,"physical_keycode":83)]
+"events": [Object(InputEventKey,"physical_keycode":83), Object(InputEventKey,"physical_keycode":4194322)]
 }
 jump={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"physical_keycode":32)]
 }
-look={
+look_left={
 "deadzone": 0.5,
-"events": []
+"events": [Object(InputEventKey,"physical_keycode":4194311), Object(InputEventKey,"physical_keycode":74)]
+}
+look_right={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194313), Object(InputEventKey,"physical_keycode":76)]
+}
+look_up={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194320), Object(InputEventKey,"physical_keycode":73)]
+}
+look_down={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194322), Object(InputEventKey,"physical_keycode":75)]
 }
 
 [rendering]

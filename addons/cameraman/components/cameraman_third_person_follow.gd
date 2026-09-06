@@ -27,7 +27,7 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	var shoulder: Vector3 = root + target_rotation * side_offset
 	var hand: Vector3 = shoulder + target_rotation * Vector3(0.0, vertical_arm_length, 0.0)
 	var desired_distance: float = _get_obstacle_distance(hand, target_rotation, delta)
-	var desired: Vector3 = hand - target_rotation * Vector3(0.0, 0.0, desired_distance)
+	var desired: Vector3 = hand + target_rotation * Vector3(0.0, 0.0, desired_distance)
 	if not vcam.previous_state_is_valid:
 		state.raw_position = desired
 	else:
@@ -97,7 +97,7 @@ func _cast_camera_path(
 	rotation: Quaternion,
 	distance: float
 ) -> float:
-	var end: Vector3 = hand - rotation * Vector3(0.0, 0.0, distance)
+	var end: Vector3 = hand + rotation * Vector3(0.0, 0.0, distance)
 	if avoid_obstacles.camera_radius <= 0.0:
 		var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(hand, end)
 		query.collision_mask = avoid_obstacles.collision_mask

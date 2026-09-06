@@ -3,7 +3,7 @@ extends Control
 
 const DEMOS: Array[String] = [
 	"third_person", "free_look", "platformer_2d", "dolly",
-	"clear_shot", "split_screen", "impulse", "sequence"
+	"clear_shot", "split_screen", "impulse", "sequence", "state_driven"
 ]
 
 func _ready() -> void:
@@ -15,6 +15,9 @@ func _ready() -> void:
 	var title: Label = Label.new()
 	title.text = "Cameraman demos"
 	list.add_child(title)
+	var hint: Label = Label.new()
+	hint.text = "Esc returns here from every demo"
+	list.add_child(hint)
 	for demo_name in DEMOS:
 		var button: Button = Button.new()
 		button.text = demo_name
