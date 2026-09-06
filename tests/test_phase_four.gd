@@ -220,6 +220,24 @@ func test_mixing_camera_blends_weighted_midpoint() -> void:
 	scene.brain.manual_update(0.1)
 	assert_almost_eq(manager.get_state().raw_position, Vector3(5.0, 0.0, 0.0), Vector3.ONE * 0.001)
 
+func test_mixing_camera_weighted_children_are_live_in_brain() -> void:
+	var manager: CameramanMixingCamera = CameramanMixingCamera.new()
+	manager.priority_enabled = true
+	manager.priority = 10
+	var first: CameramanCamera = CameramanCamera.new()
+	var second: CameramanCamera = CameramanCamera.new()
+	var third: CameramanCamera = CameramanCamera.new()
+	manager.add_child(first)
+	manager.add_child(second)
+	manager.add_child(third)
+	manager.weights = [0.5, 0.5, 0.0]
+	var scene: Dictionary = _manager_scene(manager)
+	scene.brain.manual_update(0.1)
+	assert_true(CameramanCore.is_live_in_brain(scene.brain, first))
+	assert_true(CameramanCore.is_live_in_brain(scene.brain, second))
+	assert_false(CameramanCore.is_live_in_brain(scene.brain, third))
+	assert_eq(CameramanCore.find_brain_for(second), scene.brain)
+
 func test_shot_sequence_drives_and_releases_override() -> void:
 	var root: Node = Node.new()
 	var output: Camera3D = Camera3D.new()
