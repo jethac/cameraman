@@ -17,7 +17,14 @@ func _ready() -> void:
 func _on_body_entered(body: Node3D) -> void:
 	if body == null or (not ignore_group.is_empty() and body.is_in_group(ignore_group)):
 		return
+	if body is CollisionObject3D and (body as CollisionObject3D).collision_layer & collision_mask == 0:
+		return
 	var velocity: Vector3 = default_velocity
+	var scale: float = 1.0
+	if scale_impact_with_mass and body is RigidBody3D:
+		scale *= maxf((body as RigidBody3D).mass, 0.0)
+	if scale_impact_with_speed and body is RigidBody3D:
+		scale *= (body as RigidBody3D).linear_velocity.length()
 	if use_impact_direction:
 		velocity = (global_position - body.global_position).normalized() * maxf(velocity.length(), 1.0)
-	generate_impulse_at(global_position, velocity)
+	generate_impulse_at(global_position, velocity * scale)

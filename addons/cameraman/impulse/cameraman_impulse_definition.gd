@@ -28,6 +28,9 @@ func create_event(velocity: Vector3, position: Vector3) -> CameramanImpulseEvent
 	event.dissipation_distance = dissipation_distance
 	event.envelope_shape = impulse_shape
 	event.custom_curve = custom_shape
+	event.propagation_speed = propagation_speed
+	event.envelope_curve = _make_envelope()
+	event.frequency_gain = frequency_gain
 	return event
 
 func envelope(time_value: float) -> float:
@@ -41,3 +44,29 @@ func envelope(time_value: float) -> float:
 	if impulse_shape == Shape.RUMBLE:
 		return sin(normalized * TAU * 8.0) * (1.0 - normalized)
 	return 1.0 - absf(normalized * 2.0 - 1.0)
+
+func _make_envelope() -> Curve:
+	if impulse_shape == Shape.CUSTOM:
+		return custom_shape
+	var curve: Curve = Curve.new()
+	curve.min_value = -1.0
+	curve.max_value = 1.0
+	curve.add_point(Vector2(0.0, 1.0 if impulse_shape != Shape.EXPLOSION else 0.0))
+	match impulse_shape:
+		Shape.RECOIL:
+			curve.add_point(Vector2(0.2, 1.0))
+			curve.add_point(Vector2(1.0, 0.0))
+		Shape.BUMP:
+			curve.add_point(Vector2(0.2, 1.0))
+			curve.add_point(Vector2(1.0, 0.0))
+		Shape.EXPLOSION:
+			curve.add_point(Vector2(0.5, 1.0))
+			curve.add_point(Vector2(1.0, 0.0))
+		Shape.RUMBLE:
+			for index in range(1, 9):
+				curve.add_point(Vector2(float(index) / 8.0, sin(float(index) * PI * 2.0) * (
+					1.0 - float(index) / 8.0
+				)))
+		_:
+			curve.add_point(Vector2(1.0, 0.0))
+	return curve

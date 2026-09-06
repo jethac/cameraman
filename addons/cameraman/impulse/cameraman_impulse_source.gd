@@ -14,7 +14,10 @@ func generate_impulse_at(position: Vector3, velocity: Vector3) -> CameramanImpul
 	if impulse_definition == null:
 		return null
 	var event: CameramanImpulseEvent = impulse_definition.create_event(velocity, position)
-	CameramanCore.get_impulse_manager().add_impulse_event(event)
+	var manager: CameramanImpulseManager = CameramanCore.get_impulse_manager()
+	event.start_time = manager.get_time()
+	event.ignore_time_scale = manager.ignore_time_scale
+	manager.add_impulse_event(event)
 	return event
 
 func generate_impulse_with_force(force: Vector3) -> CameramanImpulseEvent:

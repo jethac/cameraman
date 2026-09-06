@@ -4,12 +4,19 @@ extends RefCounted
 var ignore_time_scale: bool = false
 var _events: Array[CameramanImpulseEvent] = []
 
+func get_time() -> float:
+	if CameramanCore.current_time_override >= 0.0:
+		return CameramanCore.current_time_override
+	if ignore_time_scale:
+		return Time.get_ticks_usec() * 0.000001
+	return Time.get_ticks_usec() * 0.000001 * Engine.time_scale
+
 func add_impulse_event(event: CameramanImpulseEvent) -> void:
 	if event != null:
 		_events.append(event)
 
 func get_impulse_at(position: Vector3, use_2d: bool, channel_mask: int) -> Array[Variant]:
-	var now: float = CameramanCore.current_time()
+	var now: float = get_time()
 	var position_signal: Vector3 = Vector3.ZERO
 	var rotation_signal: Quaternion = Quaternion.IDENTITY
 	for index in range(_events.size() - 1, -1, -1):
