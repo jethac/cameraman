@@ -49,13 +49,15 @@ func post_pipeline_stage_callback(
 		var ray: Vector3 = (end - start).normalized()
 		var corrected: Vector3 = (hit["position"] as Vector3) - ray * camera_radius
 		corrected = _apply_strategy(corrected, start, state.raw_position)
+		if maximum_effort > 0:
+			corrected = state.raw_position + (corrected - state.raw_position).limit_length(float(maximum_effort))
 		if corrected.distance_to(start) < minimum_distance_from_target:
 			corrected = start + ray * minimum_distance_from_target
-		var weight: float = CameramanDamper.damp(
-			1.0,
-			damping_when_occluded if _occluded else damping,
-			delta
+		var damp_time: float = maxf(
+			smoothing_time,
+			damping_when_occluded if _occluded else damping
 		)
+		var weight: float = 1.0 if damp_time <= 0.0 else CameramanDamper.damp(1.0, damp_time, delta)
 		state.position_correction += (corrected - state.raw_position) * weight
 	if shot_quality_enabled:
 		var distance: float = state.raw_position.distance_to(start)

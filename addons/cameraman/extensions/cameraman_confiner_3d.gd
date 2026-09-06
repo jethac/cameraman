@@ -14,6 +14,11 @@ func post_pipeline_stage_callback(
 	if stage != CameramanCore.Stage.BODY:
 		return
 	var shape_node: CollisionShape3D = camera.get_node_or_null(bounding_volume) as CollisionShape3D
+	if shape_node == null:
+		for child in camera.get_children():
+			if child is CollisionShape3D:
+				shape_node = child as CollisionShape3D
+				break
 	if shape_node == null or shape_node.shape == null:
 		return
 	var local: Vector3 = shape_node.global_transform.inverse() * state.raw_position
@@ -21,11 +26,14 @@ func post_pipeline_stage_callback(
 	var world_corrected: Vector3 = shape_node.global_transform * corrected
 	var correction: Vector3 = world_corrected - state.raw_position
 	var weight: Vector3 = Vector3(
-		CameramanDamper.damp(1.0, damping.x, delta),
-		CameramanDamper.damp(1.0, damping.y, delta),
-		CameramanDamper.damp(1.0, damping.z, delta)
+		_damping_weight(damping.x, delta),
+		_damping_weight(damping.y, delta),
+		_damping_weight(damping.z, delta)
 	)
 	state.position_correction += Vector3(correction.x * weight.x, correction.y * weight.y, correction.z * weight.z)
+
+func _damping_weight(damp_time: float, delta: float) -> float:
+	return 1.0 if damp_time <= 0.0 else CameramanDamper.damp(1.0, damp_time, delta)
 
 func _closest_point_inside(shape: Shape3D, point: Vector3) -> Vector3:
 	if shape is BoxShape3D:

@@ -28,12 +28,14 @@ class CompositionModifier extends Modifier:
 
 @export var modifiers: Array[CameramanFreeLookModifierEntry] = []
 @export var modifier_resources: Array[Modifier] = []
+var _restores: Array[Dictionary] = []
 
 func pre_pipeline_mutate_camera_state(
 	camera: Node,
 	state: CameramanCameraState,
 	_delta: float
 ) -> void:
+	_restores.clear()
 	var vertical: float = 0.5
 	for child in camera.get_children():
 		var orbital: CameramanOrbitalFollow = child as CameramanOrbitalFollow
@@ -59,9 +61,54 @@ func pre_pipeline_mutate_camera_state(
 		var resource_value: float = modifier_resource.value_at(vertical)
 		if modifier_resource is LensModifier:
 			state.lens.fov_degrees = maxf(state.lens.fov_degrees + resource_value, 0.01)
+		elif modifier_resource is NoiseModifier:
+			for child in camera.get_children():
+				var noise: CameramanBasicMultiChannelPerlin = child as CameramanBasicMultiChannelPerlin
+				if noise == null:
+					continue
+				_save_and_set(noise, &"amplitude_gain", noise.amplitude_gain * resource_value)
+				_save_and_set(noise, &"frequency_gain", noise.frequency_gain * resource_value)
+		elif modifier_resource is PositionDampingModifier:
+			for child in camera.get_children():
+				var orbital: CameramanOrbitalFollow = child as CameramanOrbitalFollow
+				if orbital == null:
+					continue
+				_save_and_set(orbital, &"position_damping", orbital.position_damping * resource_value)
 		elif modifier_resource is TiltModifier:
 			state.raw_orientation = (
 				state.raw_orientation * Quaternion(Vector3.RIGHT, deg_to_rad(resource_value))
 			).normalized()
 		elif modifier_resource is ScreenPositionModifier:
 			state.lens.frustum_offset.x += resource_value
+		elif modifier_resource is CompositionModifier:
+			for child in camera.get_children():
+				var composer: CameramanPositionComposer = child as CameramanPositionComposer
+				if composer != null:
+					_save_and_set(
+						composer.composition,
+						&"dead_zone_size",
+						composer.composition.dead_zone_size * resource_value
+					)
+				var rotation_composer: CameramanRotationComposer = child as CameramanRotationComposer
+				if rotation_composer != null:
+					_save_and_set(
+						rotation_composer.composition,
+						&"dead_zone_size",
+						rotation_composer.composition.dead_zone_size * resource_value
+					)
+
+func post_pipeline_stage_callback(
+	_camera: Node,
+	stage: CameramanCore.Stage,
+	_state: CameramanCameraState,
+	_delta: float
+) -> void:
+	if stage != CameramanCore.Stage.FINALIZE:
+		return
+	for restore in _restores:
+		restore.object.set(restore.property, restore.value)
+	_restores.clear()
+
+func _save_and_set(object: Object, property: StringName, value: Variant) -> void:
+	_restores.append({"object": object, "property": property, "value": object.get(property)})
+	object.set(property, value)

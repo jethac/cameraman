@@ -19,5 +19,8 @@ func post_pipeline_stage_callback(
 		state.lens.orthographic_size * CameramanCameraState.aspect_ratio / maxf(size.x, 1.0),
 		state.lens.orthographic_size / maxf(size.y, 1.0)
 	)
-	state.raw_position.x = snappedf(state.raw_position.x, pixel_size.x)
-	state.raw_position.y = snappedf(state.raw_position.y, pixel_size.y)
+	var final_position: Vector3 = state.get_final_position()
+	var rounded: Vector3 = final_position
+	rounded.x = snappedf(final_position.x, pixel_size.x)
+	rounded.y = snappedf(final_position.y, pixel_size.y)
+	state.raw_position = rounded - state.position_correction
