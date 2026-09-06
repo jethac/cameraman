@@ -57,6 +57,8 @@ const TYPES: Array[Dictionary] = [
 		"script": "res://addons/cameraman/extensions/cameraman_storyboard.gd", "icon": "extension"},
 	{"name": "CameramanThirdPersonAim", "base": "Node",
 		"script": "res://addons/cameraman/extensions/cameraman_third_person_aim.gd", "icon": "extension"},
+	{"name": "CameramanShotQualityEvaluator", "base": "Node",
+		"script": "res://addons/cameraman/extensions/cameraman_shot_quality_evaluator.gd", "icon": "extension"},
 	{"name": "CameramanCameraAttributes", "base": "Node",
 		"script": "res://addons/cameraman/extensions/cameraman_camera_attributes.gd", "icon": "extension"},
 	{"name": "CameramanPixelPerfect", "base": "Node",
