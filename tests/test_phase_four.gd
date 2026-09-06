@@ -283,26 +283,38 @@ func test_player_latches_camera_relative_movement_basis() -> void:
 	var root := Node3D.new()
 	var camera := Camera3D.new()
 	camera.current = true
+	var brain := CameramanBrain.new()
+	brain.default_blend.style = CameramanBlendDefinition.Style.LINEAR
+	brain.default_blend.time = 10.0
+	var first := CameramanCamera.new()
+	var second := CameramanCamera.new()
+	first.priority_enabled = true
+	first.priority = 2
+	second.priority_enabled = true
+	second.priority = 1
+	second.rotation.y = PI
 	var player := CameramanDemoPlayerController.new()
 	player.mouse_look_enabled = false
 	root.add_child(camera)
+	camera.add_child(brain)
+	root.add_child(first)
+	root.add_child(second)
 	root.add_child(player)
 	add_child_autofree(root)
 	Input.action_press("move_forward")
 	for _index in 3:
 		await get_tree().physics_frame
 	var first_direction := Vector2(player.velocity.x, player.velocity.z).normalized()
-	camera.rotation.y = PI * 0.5
-	for _index in 3:
+	first.rotation.y = PI * 0.5
+	for _index in 30:
 		await get_tree().physics_frame
-	var held_direction := Vector2(player.velocity.x, player.velocity.z).normalized()
-	Input.action_release("move_forward")
-	await get_tree().physics_frame
-	Input.action_press("move_forward")
-	for _index in 3:
+	var steered_direction := Vector2(player.velocity.x, player.velocity.z).normalized()
+	second.priority = 3
+	for _index in 30:
 		await get_tree().physics_frame
-	var relatched_direction := Vector2(player.velocity.x, player.velocity.z).normalized()
+	var blending_direction := Vector2(player.velocity.x, player.velocity.z).normalized()
 	Input.action_release("move_forward")
-	assert_almost_eq(held_direction, first_direction, Vector2.ONE * 0.01)
-	assert_lt(relatched_direction.dot(held_direction), 0.5)
-	assert_lt(relatched_direction.x, -0.8)
+	assert_lt(steered_direction.dot(first_direction), 0.5)
+	assert_lt(steered_direction.x, -0.8)
+	assert_true(brain.is_blending)
+	assert_almost_eq(blending_direction, steered_direction, Vector2.ONE * 0.05)
