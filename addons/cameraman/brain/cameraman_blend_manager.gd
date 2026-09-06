@@ -1,5 +1,6 @@
 @tool
 class_name CameramanBlendManager
+## Provides the blend manager runtime helper.
 extends RefCounted
 
 var active_blend: CameramanBlend
@@ -7,6 +8,7 @@ var active_source: Object
 var _owner: Node
 var _blend_outgoing_event_source: Object
 
+## Updates the root frame.
 func update_root_frame(
 	desired: Object,
 	world_up: Vector3,
@@ -62,6 +64,7 @@ func update_root_frame(
 	CameramanCore.get_events().emit_activation(activation_event)
 	return true
 
+## Updates the current runtime state.
 func update(
 	world_up: Vector3,
 	delta: float,
@@ -86,6 +89,7 @@ func update(
 	_update_source(world_up, delta, update_callback)
 	return active_source.get_state()
 
+## Returns the latest evaluated camera state.
 func get_state() -> CameramanCameraState:
 	if active_blend != null:
 		return active_blend.get_state()
@@ -93,6 +97,7 @@ func get_state() -> CameramanCameraState:
 		return active_source.get_state()
 	return CameramanCameraState.create_default()
 
+## Returns whether this camera source is live.
 func is_live(camera: CameramanVirtualCameraBase) -> bool:
 	if active_source == camera:
 		return true

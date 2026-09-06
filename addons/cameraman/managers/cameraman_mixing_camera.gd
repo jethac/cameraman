@@ -1,9 +1,13 @@
 @tool
 class_name CameramanMixingCamera
+## Provides the mixing camera camera manager.
+## Key properties include `weights`, which configure its behavior.
 extends CameramanCameraManagerBase
 
+## Configures the weights used by this type.
 @export var weights: Array[float] = []
 
+## Evaluates the camera's current state.
 func internal_update_state(world_up: Vector3, delta: float) -> void:
 	var result: CameramanCameraState
 	var total: float = 0.0
@@ -31,6 +35,7 @@ func internal_update_state(world_up: Vector3, delta: float) -> void:
 	live_child = _first_weighted_child()
 	previous_state_is_valid = true
 
+## Sets the weight.
 func set_weight(index_or_camera: Variant, weight: float) -> void:
 	var index: int = int(index_or_camera) if index_or_camera is int else get_child_cameras().find(index_or_camera)
 	if index < 0 or index >= 8:
@@ -39,6 +44,7 @@ func set_weight(index_or_camera: Variant, weight: float) -> void:
 		weights.append(0.0)
 	weights[index] = maxf(weight, 0.0)
 
+## Returns the weight.
 func get_weight(index: int) -> float:
 	return weights[index] if index >= 0 and index < weights.size() else 0.0
 

@@ -1,5 +1,6 @@
 @tool
 class_name CameramanBlendEvent
+## Provides the blend event runtime helper.
 extends RefCounted
 
 var origin: Node

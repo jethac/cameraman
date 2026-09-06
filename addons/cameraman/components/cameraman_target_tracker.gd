@@ -1,5 +1,6 @@
 @tool
 class_name CameramanTargetTracker
+## Provides the target tracker runtime helper.
 extends RefCounted
 
 enum BindingMode {

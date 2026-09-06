@@ -1,14 +1,21 @@
 @tool
 class_name CameramanTargetGroup
+## Aggregates weighted target nodes for group framing, bounds, and screen-space composition.
+## Key properties include `members`, `position_mode`, `rotation_mode`, and related settings, which configure its
+## behavior.
 extends Node3D
 
 enum PositionMode { GROUP_CENTER, GROUP_AVERAGE }
 enum RotationMode { MANUAL, GROUP_AVERAGE }
 enum UpdateMethod { PROCESS, PHYSICS, LATE }
 
+## Configures the members used by this type.
 @export var members: Array[CameramanTargetGroupMember] = []
+## Selects the position mode behavior.
 @export var position_mode: PositionMode = PositionMode.GROUP_CENTER
+## Selects the rotation mode behavior.
 @export var rotation_mode: RotationMode = RotationMode.MANUAL
+## Configures the update method used by this type.
 @export var update_method: UpdateMethod = UpdateMethod.PROCESS
 
 func _process(_delta: float) -> void:
@@ -23,6 +30,7 @@ func _physics_process(_delta: float) -> void:
 	if update_method == UpdateMethod.PHYSICS:
 		update_group()
 
+## Updates the group.
 func update_group() -> void:
 	for member in members:
 		if member != null:
@@ -40,6 +48,7 @@ func update_group() -> void:
 		if count > 0 and average.length_squared() > 0.000001:
 			look_at(global_position + average.normalized(), Vector3.UP)
 
+## Returns whether this target group has no members.
 func is_empty() -> bool:
 	_resolve_members()
 	for member in members:
@@ -47,6 +56,7 @@ func is_empty() -> bool:
 			return false
 	return true
 
+## Adds the member.
 func add_member(
 	target_node: Node3D,
 	weight_value: float = 1.0,
@@ -59,18 +69,21 @@ func add_member(
 	members.append(member)
 	return member
 
+## Removes the member.
 func remove_member(target_node: Node3D) -> void:
 	for index in range(members.size() - 1, -1, -1):
 		var member: CameramanTargetGroupMember = members[index]
 		if member != null and member.target == target_node:
 			members.remove_at(index)
 
+## Returns the member associated with the target node.
 func find_member(target_node: Node3D) -> CameramanTargetGroupMember:
 	for member in members:
 		if member != null and member.target == target_node:
 			return member
 	return null
 
+## Returns the sphere.
 func get_sphere() -> Array[Variant]:
 	_resolve_members()
 	var center: Vector3 = Vector3.ZERO
@@ -93,6 +106,7 @@ func get_sphere() -> Array[Variant]:
 		radius = maxf(radius, center.distance_to(member.target.global_position) + member.radius)
 	return [center, radius]
 
+## Returns the bounding box.
 func get_bounding_box() -> AABB:
 	_resolve_members()
 	if is_empty():
@@ -110,6 +124,7 @@ func get_bounding_box() -> AABB:
 		first = false
 	return bounds
 
+## Returns the view space bounding box.
 func get_view_space_bounding_box(view_transform: Transform3D) -> AABB:
 	_resolve_members()
 	if is_empty():
@@ -131,6 +146,7 @@ func _resolve_members() -> void:
 		if member != null:
 			member.resolve(self)
 
+## Returns the view space angular bounds.
 func get_view_space_angular_bounds(observer: Transform3D) -> Array[Variant]:
 	var minimum: Vector2 = Vector2(INF, INF)
 	var maximum: Vector2 = Vector2(-INF, -INF)

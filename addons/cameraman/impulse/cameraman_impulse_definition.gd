@@ -1,21 +1,35 @@
 @tool
 class_name CameramanImpulseDefinition
+## Defines the shape, timing, propagation, and gains for generated camera impulses.
+## Key properties include `impulse_channel`, `impulse_shape`, `custom_shape`, and related settings, which configure
+## its behavior.
 extends Resource
 
 enum Shape { RECOIL, BUMP, EXPLOSION, RUMBLE, CUSTOM }
 enum ImpulseType { UNIFORM, DISSIPATING, PROPAGATING, LEGACY }
 
+## Selects the physics layers or camera channels used by impulse channel.
 @export_flags_3d_physics var impulse_channel: int = 1
+## Selects the impulse shape behavior.
 @export var impulse_shape: Shape = Shape.BUMP
+## Selects the custom shape behavior.
 @export var custom_shape: Curve
+## Configures the impulse duration used by this type.
 @export var impulse_duration: float = 0.5
+## Configures the impulse type used by this type.
 @export var impulse_type: ImpulseType = ImpulseType.UNIFORM
+## Configures the dissipation rate used by this type.
 @export var dissipation_rate: float = 1.0
+## Sets the dissipation distance used by this type.
 @export var dissipation_distance: float = 0.0
+## Configures the propagation speed used by this type.
 @export var propagation_speed: float = 0.0
+## Configures the amplitude gain used by this type.
 @export var amplitude_gain: float = 1.0
+## Configures the frequency gain used by this type.
 @export var frequency_gain: float = 1.0
 
+## Creates the event.
 func create_event(velocity: Vector3, position: Vector3) -> CameramanImpulseEvent:
 	var event: CameramanImpulseEvent = CameramanImpulseEvent.new()
 	event.position = position
@@ -34,6 +48,7 @@ func create_event(velocity: Vector3, position: Vector3) -> CameramanImpulseEvent
 	event.frequency_gain = frequency_gain
 	return event
 
+## Returns the impulse envelope value at the supplied time.
 func envelope(time_value: float) -> float:
 	var normalized: float = clampf(time_value / maxf(impulse_duration, 0.0001), 0.0, 1.0)
 	if impulse_shape == Shape.CUSTOM and custom_shape != null:

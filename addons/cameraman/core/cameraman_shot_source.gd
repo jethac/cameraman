@@ -1,31 +1,40 @@
 @tool
 class_name CameramanShotSource
+## Provides the shot source runtime helper.
 extends RefCounted
 
+## Returns the camera name used in descriptions and blend lookup.
 func get_camera_name() -> String:
 	push_error("Shot source must implement get_camera_name")
 	return ""
 
+## Returns a human-readable description of this camera source.
 func get_description() -> String:
 	push_error("Shot source must implement get_description")
 	return get_camera_name()
 
+## Returns the latest evaluated camera state.
 func get_state() -> CameramanCameraState:
 	push_error("Shot source must implement get_state")
 	return CameramanCameraState.create_default()
 
+## Returns whether this object is valid for evaluation.
 func is_valid() -> bool:
 	push_error("Shot source must implement is_valid")
 	return false
 
+## Returns the parent mixer.
 func get_parent_mixer() -> Node:
 	return null
 
+## Updates the state.
 func update_state(_world_up: Vector3, _delta: float) -> void:
 	push_error("Shot source must implement update_state")
 
+## Handles the camera activated event.
 func on_camera_activated(_event: CameramanActivationEvent) -> void:
 	pass
 
+## Handles the camera deactivated event.
 func on_camera_deactivated(_event: CameramanActivationEvent) -> void:
 	pass

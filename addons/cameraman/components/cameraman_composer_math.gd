@@ -1,5 +1,6 @@
 @tool
 class_name CameramanComposerMath
+## Provides the composer math runtime helper.
 extends RefCounted
 
 static func project_screen_offset(

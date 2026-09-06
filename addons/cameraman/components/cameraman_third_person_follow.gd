@@ -1,12 +1,21 @@
 @tool
 class_name CameramanThirdPersonFollow
+## Computes a third-person rig with shoulder offsets, obstacle avoidance, and target-relative distance.
+## Key properties include `damping`, `shoulder_offset`, `vertical_arm_length`, and related settings, which configure
+## its behavior.
 extends CameramanComponent
 
+## Controls the damping applied to damping.
 @export var damping: Vector3 = Vector3.ZERO
+## Configures the shoulder offset used by this type.
 @export var shoulder_offset: Vector3 = Vector3(0.5, 1.5, 0.0)
+## Configures the vertical arm length used by this type.
 @export var vertical_arm_length: float = 0.0
+## Configures the camera side used by this type.
 @export_range(0.0, 1.0) var camera_side: float = 1.0
+## Sets the camera distance used by this type.
 @export var camera_distance: float = 4.0
+## Configures the avoid obstacles used by this type.
 @export var avoid_obstacles: CameramanObstacleAvoidance
 
 var _collision_distance: float = -1.0
@@ -14,9 +23,11 @@ var _collision_distance: float = -1.0
 func _init() -> void:
 	avoid_obstacles = CameramanObstacleAvoidance.new()
 
+## Returns the pipeline stage handled by this type.
 func stage() -> CameramanCore.Stage:
 	return CameramanCore.Stage.BODY
 
+## Applies this component's camera-state mutation for the current pipeline step.
 func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	var target: Node3D = follow_target
 	if target == null:
@@ -44,6 +55,7 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 		var rotation_weight: float = CameramanDamper.damp(1.0, damping.y, delta)
 		state.raw_orientation = state.raw_orientation.slerp(target_rotation, rotation_weight)
 
+## Returns the rig positions.
 func get_rig_positions() -> Array[Vector3]:
 	var target: Node3D = follow_target
 	if target == null:
@@ -56,15 +68,18 @@ func get_rig_positions() -> Array[Vector3]:
 	var hand: Vector3 = shoulder + rotation * Vector3(0.0, vertical_arm_length, 0.0)
 	return [root, shoulder, hand]
 
+## Forces the camera and its pipeline state to a position and rotation.
 func force_camera_position(position: Vector3, _rotation: Quaternion) -> void:
 	var rig: Array[Vector3] = get_rig_positions()
 	if rig.size() >= 3:
 		camera_distance = rig[2].distance_to(position)
 
+## Handles the target object warped event.
 func on_target_object_warped(target: Node3D, _delta: Vector3) -> void:
 	if target == follow_target:
 		_collision_distance = -1.0
 
+## Handles the transition from camera event.
 func on_transition_from_camera(from: Object, _world_up: Vector3, _delta: float) -> bool:
 	if (
 		vcam == null

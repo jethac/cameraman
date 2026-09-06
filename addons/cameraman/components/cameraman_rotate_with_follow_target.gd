@@ -1,12 +1,17 @@
 @tool
 class_name CameramanRotateWithFollowTarget
+## Provides the rotate with follow target camera pipeline component.
+## Key properties include `damping`, which configure its behavior.
 extends CameramanComponent
 
+## Controls the damping applied to damping.
 @export var damping: float = 0.0
 
+## Returns the pipeline stage handled by this type.
 func stage() -> CameramanCore.Stage:
 	return CameramanCore.Stage.AIM
 
+## Applies this component's camera-state mutation for the current pipeline step.
 func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	if follow_target == null:
 		return
@@ -19,6 +24,7 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 		CameramanDamper.damp(1.0, damping, delta)
 	)
 
+## Handles the transition from camera event.
 func on_transition_from_camera(from: Object, _world_up: Vector3, _delta: float) -> bool:
 	if (
 		vcam == null
@@ -31,6 +37,7 @@ func on_transition_from_camera(from: Object, _world_up: Vector3, _delta: float) 
 	force_camera_position(previous.get_final_position(), previous.get_final_orientation())
 	return true
 
+## Forces the camera and its pipeline state to a position and rotation.
 func force_camera_position(_position: Vector3, rotation: Quaternion) -> void:
 	if vcam != null:
 		vcam.call("set_meta", "cameraman_rotate_follow_rotation", rotation)

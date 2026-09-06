@@ -1,5 +1,6 @@
 @tool
 class_name CameramanActivationEvent
+## Provides the activation event runtime helper.
 extends RefCounted
 
 var origin: Node

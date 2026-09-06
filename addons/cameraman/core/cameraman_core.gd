@@ -1,5 +1,6 @@
 @tool
 class_name CameramanCore
+## Provides shared Cameraman runtime services, camera registry access, and brain lookup.
 extends RefCounted
 
 enum Stage { BODY, AIM, NOISE, FINALIZE }

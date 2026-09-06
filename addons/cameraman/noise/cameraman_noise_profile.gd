@@ -1,18 +1,25 @@
 @tool
 class_name CameramanNoiseProfile
+## Provides the noise profile configuration resource.
+## Key properties include `position_noise`, `orientation_noise`, which configure its behavior.
 extends Resource
 
+## Configures the position noise used by this type.
 @export var position_noise: Array[CameramanNoiseChannel] = []
+## Configures the orientation noise used by this type.
 @export var orientation_noise: Array[CameramanNoiseChannel] = []
 
 var _seed: int = 1
 
+## Evaluates the position.
 func evaluate_position(time_value: float) -> Vector3:
 	return _evaluate_channels(position_noise, time_value)
 
+## Evaluates the orientation.
 func evaluate_orientation(time_value: float) -> Vector3:
 	return _evaluate_channels(orientation_noise, time_value)
 
+## Reseeds the noise generators.
 func reseed(seed_value: int = -1) -> void:
 	_seed = seed_value if seed_value >= 0 else randi()
 

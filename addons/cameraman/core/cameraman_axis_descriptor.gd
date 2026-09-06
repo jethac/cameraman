@@ -1,5 +1,6 @@
 @tool
 class_name CameramanAxisDescriptor
+## Provides the axis descriptor runtime helper.
 extends RefCounted
 
 var axis: RefCounted

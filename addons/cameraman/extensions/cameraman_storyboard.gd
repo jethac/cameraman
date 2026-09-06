@@ -1,21 +1,35 @@
 @tool
 class_name CameramanStoryboard
+## Renders a texture overlay or world/camera-space storyboard during camera activation.
+## Key properties include `image`, `alpha`, `show_image`, and related settings, which configure its behavior.
 extends CameramanExtension
 
 enum Aspect { BEST_FIT, CROP_IMAGE_TO_FIT, STRETCH_TO_FIT }
 enum RenderMode { SCREEN_SPACE_OVERLAY, SCREEN_SPACE_CAMERA, WORLD_SPACE }
 
+## Configures the image used by this type.
 @export var image: Texture2D
+## Configures the alpha used by this type.
 @export var alpha: float = 1.0
+## Enables or disables show image.
 @export var show_image: bool = true
+## Configures the aspect used by this type.
 @export var aspect: Aspect = Aspect.BEST_FIT
+## Configures the center used by this type.
 @export var center: Vector2 = Vector2(0.5, 0.5)
+## Configures the rotation used by this type.
 @export var rotation: float = 0.0
+## Configures the scale used by this type.
 @export var scale: Vector2 = Vector2.ONE
+## Configures the sync scale used by this type.
 @export var sync_scale: bool = false
+## Enables or disables mute camera.
 @export var mute_camera: bool = false
+## Configures the split view used by this type.
 @export_range(0.0, 1.0) var split_view: float = 1.0
+## Selects the render mode behavior.
 @export var render_mode: RenderMode = RenderMode.SCREEN_SPACE_OVERLAY
+## Sets the world distance used by this type.
 @export var world_distance: float = 1.0
 
 var _active_mode: int = -1
@@ -40,6 +54,7 @@ func _process(_delta: float) -> void:
 	else:
 		_update_screen_space(visible_now)
 
+## Handles the camera activated event.
 func on_camera_activated(_camera: Node, _from: Object) -> void:
 	_ensure_mode()
 	if _texture_rect != null:
@@ -47,6 +62,7 @@ func on_camera_activated(_camera: Node, _from: Object) -> void:
 	if _world_quad != null:
 		_world_quad.visible = show_image
 
+## Handles the camera deactivated event.
 func on_camera_deactivated(_camera: Node, _to: Object) -> void:
 	if _texture_rect != null:
 		_texture_rect.visible = false

@@ -1,9 +1,13 @@
 @tool
 class_name CameramanBlenderSettings
+## Provides the blender settings configuration resource.
+## Key properties include `custom_blends`, which configure its behavior.
 extends Resource
 
+## Defines the blend behavior used by custom blends.
 @export var custom_blends: Array[CameramanCustomBlend] = []
 
+## Returns the blend for.
 func get_blend_for(
 	from_name: String,
 	to_name: String,

@@ -88,8 +88,9 @@ Run the headless many-camera benchmark with:
 godot --headless -s tests/bench/bench_many_cameras.gd -- 500
 ```
 
-On Godot 4.4.1 headless on this VM, using 600 frames with one live camera
-blending and round-robin standby updates:
+On a software-rendered CI VM (numbers are relative; real hardware is faster),
+using Godot 4.4.1 headless and 600 frames with one live camera blending and
+round-robin standby updates:
 
 | Cameras | Time per frame |
 | ---: | ---: |
@@ -101,18 +102,35 @@ blending and round-robin standby updates:
 The 500-camera case measured approximately 12 ms per frame before registry
 sort-order caching was added.
 
+## Editor tooling
+
+The addon registers custom camera, brain, component, manager, and extension
+node types for the Godot editor. Use **Project > Tools > Create presets** to
+build common camera rigs with single-step undo. The editor also provides a
+camera frustum gizmo and a composer dead-zone viewport overlay.
+
+## Benchmark
+
+The many-camera benchmark is available at
+[tests/bench/bench_many_cameras.gd](tests/bench/bench_many_cameras.gd).
+
 ## Demos
 
 The `demo/` directory contains third-person, free-look, 2D platformer, dolly,
 ClearShot, split-screen, impulse, and shot-sequence scenes. The main menu is
 `demo/main_menu.tscn`.
 
-## Testing and CI
+## Running the tests
 
 ```text
 godot --headless --import
 godot --headless -s addons/gut/gut_cmdln.gd -gexit
 gdlint addons/cameraman tests demo
 ```
+
+The GUT suite contains the runtime and editor regression tests. `gdlint`
+checks the addon, tests, and demo scripts.
+
+## Testing and CI
 
 The repository CI runs the same import, GUT, and lint commands on Godot 4.4.1.

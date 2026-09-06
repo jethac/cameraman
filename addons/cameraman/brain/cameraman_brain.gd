@@ -1,5 +1,8 @@
 @tool
 class_name CameramanBrain
+## Coordinates live camera selection, pipeline evaluation, and transitions for an output camera.
+## Key properties include `camera_path`, `show_debug_text`, `show_camera_frustum`, and related settings, which
+## configure its behavior.
 extends Node
 
 signal camera_cut(brain: CameramanBrain)
@@ -8,17 +11,29 @@ signal camera_activated(brain: CameramanBrain, incoming: Object, outgoing: Objec
 enum UpdateMethod { PROCESS, PHYSICS, SMART, MANUAL }
 enum BlendUpdateMethod { PROCESS, PHYSICS }
 
+## Identifies the scene node used for the camera reference.
 @export var camera_path: NodePath
+## Configures the show debug text used by this type.
 @export var show_debug_text: bool = false
+## Configures the show camera frustum used by this type.
 @export var show_camera_frustum: bool = true
+## Configures the ignore time scale used by this type.
 @export var ignore_time_scale: bool = false
+## Configures the world up override used by this type.
 @export var world_up_override: Node3D
+## Selects the physics layers or camera channels used by channel mask.
 @export_flags("All Channels") var channel_mask: int = 0xFFFFFFFF
+## Configures the update method used by this type.
 @export var update_method: UpdateMethod = UpdateMethod.SMART
+## Defines the blend behavior used by blend update method.
 @export var blend_update_method: BlendUpdateMethod = BlendUpdateMethod.PROCESS
+## Selects the lens mode override enabled behavior.
 @export var lens_mode_override_enabled: bool = false
+## Selects the default lens mode behavior.
 @export var default_lens_mode: CameramanLens.Mode = CameramanLens.Mode.PERSPECTIVE
+## Defines the blend behavior used by default blend.
 @export var default_blend: CameramanBlendDefinition
+## Defines the blend behavior used by custom blends.
 @export var custom_blends: CameramanBlenderSettings
 
 var active_virtual_camera: CameramanVirtualCameraBase
@@ -75,19 +90,24 @@ func _physics_process(delta: float) -> void:
 	elif update_method == UpdateMethod.SMART and _desired_source_is_physics_driven():
 		_update_frame(delta, Engine.get_physics_frames())
 
+## Advances the update manually.
 func manual_update(delta: float = -1.0) -> void:
 	var step: float = delta if delta >= 0.0 else get_process_delta_time()
 	_update_frame(step, _frame + 1)
 
+## Requests a cut on the next camera transition.
 func cut_next_transition() -> void:
 	_cut_next_transition = true
 
+## Handles the target warped event.
 func on_target_warped(_target: Node3D) -> void:
 	cut_next_transition()
 
+## Returns whether this camera source is live.
 func is_live(camera: CameramanVirtualCameraBase) -> bool:
 	return _blend_manager.is_live(camera)
 
+## Returns the live description.
 func get_live_description() -> String:
 	if active_blend != null:
 		return active_blend.description()
@@ -95,11 +115,13 @@ func get_live_description() -> String:
 		return _blend_manager.active_source.get_description()
 	return "<none>"
 
+## Returns the configured world-up direction.
 func default_world_up() -> Vector3:
 	if world_up_override != null:
 		return world_up_override.global_basis.y.normalized()
 	return Vector3.UP
 
+## Sets the camera override.
 func set_camera_override(
 	identifier: int,
 	priority_value: int,
@@ -134,14 +156,17 @@ func set_camera_override(
 	_overrides[id] = entry
 	return id
 
+## Releases a previously registered camera override.
 func release_camera_override(identifier: int) -> void:
 	_overrides.erase(identifier)
 
+## Returns the output camera.
 func get_output_camera() -> Camera3D:
 	if not camera_path.is_empty():
 		return get_node_or_null(camera_path) as Camera3D
 	return get_parent() as Camera3D
 
+## Returns the blend definition.
 func get_blend_definition(
 	from_source: Object,
 	to_source: Object,

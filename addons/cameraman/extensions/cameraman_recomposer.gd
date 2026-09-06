@@ -1,18 +1,27 @@
 @tool
 class_name CameramanRecomposer
+## Provides the recomposer camera pipeline extension.
+## Key properties include `tilt`, `pan`, `dutch`, and related settings, which configure its behavior.
 extends CameramanExtension
 
+## Configures the tilt used by this type.
 @export var tilt: float = 0.0
+## Configures the pan used by this type.
 @export var pan: float = 0.0
+## Configures the dutch used by this type.
 @export var dutch: float = 0.0
+## Configures the zoom scale used by this type.
 @export var zoom_scale: float = 1.0
+## Configures the follow attachment used by this type.
 @export_range(0.0, 1.0) var follow_attachment: float = 1.0
+## Configures the look at attachment used by this type.
 @export_range(0.0, 1.0) var look_at_attachment: float = 1.0
 
 var _pre_body_position: Vector3 = Vector3.ZERO
 var _pre_aim_orientation: Quaternion = Quaternion.IDENTITY
 var _aim_snapshot_captured: bool = false
 
+## Applies this extension before the component pipeline runs.
 func pre_pipeline_mutate_camera_state(
 	_camera: Node,
 	state: CameramanCameraState,
@@ -22,6 +31,7 @@ func pre_pipeline_mutate_camera_state(
 	_pre_aim_orientation = state.raw_orientation
 	_aim_snapshot_captured = false
 
+## Applies extension behavior after the specified pipeline stage.
 func post_pipeline_stage_callback(
 	_camera: Node,
 	stage: CameramanCore.Stage,

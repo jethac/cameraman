@@ -1,9 +1,11 @@
 @tool
 class_name CameramanInputAxisDriver
+## Provides the input axis driver runtime helper.
 extends RefCounted
 
 var value: float = 0.0
 
+## Updates the current runtime state.
 func update(target: float, delta: float, accel_time: float, decel_time: float) -> float:
 	var duration: float = accel_time if absf(target) > absf(value) else decel_time
 	var weight: float = 1.0 if duration <= 0.0 else CameramanDamper.damp(1.0, duration, delta)

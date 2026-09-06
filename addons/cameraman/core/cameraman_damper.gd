@@ -1,5 +1,6 @@
 @tool
 class_name CameramanDamper
+## Provides the damper runtime helper.
 extends RefCounted
 
 const _RESPONSE: float = 6.9077554

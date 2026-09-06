@@ -1,10 +1,12 @@
 @tool
 class_name CameramanImpulseManager
+## Provides the impulse manager runtime helper.
 extends RefCounted
 
 var ignore_time_scale: bool = false
 var _events: Array[CameramanImpulseEvent] = []
 
+## Returns the time.
 func get_time() -> float:
 	if CameramanCore.current_time_override >= 0.0:
 		return CameramanCore.current_time_override
@@ -12,10 +14,12 @@ func get_time() -> float:
 		return Time.get_ticks_usec() * 0.000001
 	return Time.get_ticks_usec() * 0.000001 * Engine.time_scale
 
+## Adds the impulse event.
 func add_impulse_event(event: CameramanImpulseEvent) -> void:
 	if event != null:
 		_events.append(event)
 
+## Returns the combined impulse affecting a position and channel mask.
 func get_impulse_at(position: Vector3, use_2d: bool, channel_mask: int) -> Array[Variant]:
 	var now: float = get_time()
 	var position_signal: Vector3 = Vector3.ZERO
@@ -32,5 +36,6 @@ func get_impulse_at(position: Vector3, use_2d: bool, channel_mask: int) -> Array
 		rotation_signal = (rotation_signal * (result[1] as Quaternion)).normalized()
 	return [position_signal, rotation_signal]
 
+## Clears the stored events or state.
 func clear() -> void:
 	_events.clear()

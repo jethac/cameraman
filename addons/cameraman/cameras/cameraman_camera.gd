@@ -1,23 +1,33 @@
 @tool
 class_name CameramanCamera
+## Represents a virtual camera source with tracking targets, components, and lens settings.
+## Key properties include `tracking_target`, `use_separate_look_at`, `look_at_target`, and related settings, which
+## configure its behavior.
 extends CameramanVirtualCameraBase
 
+## Specifies the target used by tracking target.
 @export var tracking_target: Node3D
+## Configures the use separate look at used by this type.
 @export var use_separate_look_at: bool = false
+## Specifies the target used by look at target.
 @export var look_at_target: Node3D
+## Configures the lens used by this type.
 @export var lens: CameramanLens
 
 func _init() -> void:
 	lens = CameramanLens.new()
 
+## Returns the follow.
 func get_follow() -> Node3D:
 	return tracking_target if tracking_target != null else super.get_follow()
 
+## Returns the look at.
 func get_look_at() -> Node3D:
 	if use_separate_look_at and look_at_target != null:
 		return look_at_target
 	return get_follow()
 
+## Returns the component.
 func get_component(stage_value: CameramanCore.Stage) -> CameramanComponent:
 	var result: CameramanComponent
 	for child in get_children():
@@ -26,6 +36,7 @@ func get_component(stage_value: CameramanCore.Stage) -> CameramanComponent:
 			result = component
 	return result
 
+## Evaluates the camera's current state.
 func internal_update_state(world_up: Vector3, delta: float) -> void:
 	var state: CameramanCameraState = CameramanCameraState.create_default(world_up)
 	state.lens = lens.duplicate() as CameramanLens

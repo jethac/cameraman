@@ -1,5 +1,6 @@
 @tool
 class_name CameramanGizmoPlugin
+## Provides the gizmo plugin Godot editor integration.
 extends EditorNode3DGizmoPlugin
 
 func _init() -> void:

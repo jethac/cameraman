@@ -1,17 +1,29 @@
 @tool
 class_name CameramanLens
+## Stores perspective, orthographic, frustum, focus, and physical lens settings used by camera state.
+## Key properties include `fov_degrees`, `orthographic_size`, `near`, and related settings, which configure its
+## behavior.
 extends Resource
 
 enum Mode { NONE, PERSPECTIVE, ORTHOGRAPHIC, FRUSTUM }
 
+## Configures the fov degrees used by this type.
 @export var fov_degrees: float = 60.0
+## Sets the orthographic size used by this type.
 @export var orthographic_size: float = 10.0
+## Configures the near used by this type.
 @export var near: float = 0.05
+## Configures the far used by this type.
 @export var far: float = 4000.0
+## Configures the dutch degrees used by this type.
 @export var dutch_degrees: float = 0.0
+## Selects the mode override behavior.
 @export var mode_override: Mode = Mode.NONE
+## Sets the focus distance used by this type.
 @export var focus_distance: float = 10.0
+## Configures the frustum offset used by this type.
 @export var frustum_offset: Vector2 = Vector2.ZERO
+## Configures the physical properties used by this type.
 @export var physical_properties: CameramanLensPhysicalProperties
 
 func _init() -> void:
@@ -46,6 +58,7 @@ static func _preset(focal_length: float) -> CameramanLens:
 	lens.fov_degrees = from_focal_length(focal_length)
 	return lens
 
+## Returns an interpolated copy using the supplied weight.
 func lerp(other: CameramanLens, weight: float) -> CameramanLens:
 	var result: CameramanLens = duplicate() as CameramanLens
 	var from_focal: float = 12.0 / tan(deg_to_rad(fov_degrees) * 0.5)
@@ -63,5 +76,6 @@ func lerp(other: CameramanLens, weight: float) -> CameramanLens:
 	result.mode_override = other.mode_override if weight > 0.5 else mode_override
 	return result
 
+## Returns whether the lens uses orthographic projection.
 func is_orthographic() -> bool:
 	return mode_override == Mode.ORTHOGRAPHIC

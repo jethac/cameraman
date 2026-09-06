@@ -1,5 +1,7 @@
 @tool
 class_name CameramanBrainEvents
+## Provides the brain events scene node.
+## Key properties include `brain`, which configure its behavior.
 extends Node
 
 signal camera_activated(brain: CameramanBrain, incoming: Object, outgoing: Object)
@@ -8,6 +10,7 @@ signal blend_created(params: CameramanBlendEvent)
 signal blend_finished(mixer: Node, camera: Object)
 signal camera_cut(brain: CameramanBrain)
 
+## Configures the brain used by this type.
 @export var brain: CameramanBrain
 
 func _ready() -> void:

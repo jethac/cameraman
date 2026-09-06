@@ -1,27 +1,46 @@
 @tool
 class_name CameramanDeoccluder
+## Adjusts camera position when geometry occludes the tracked target.
+## Key properties include `collide_against`, `ignore_group`, `transparent_groups`, and related settings, which
+## configure its behavior.
 extends CameramanExtension
 
 enum Strategy { PULL_CAMERA_FORWARD, PRESERVE_CAMERA_HEIGHT, PRESERVE_CAMERA_DISTANCE }
 
+## Configures the collide against used by this type.
 @export_flags_3d_physics var collide_against: int = 1
+## Configures the ignore group used by this type.
 @export var ignore_group: StringName
+## Configures the transparent groups used by this type.
 @export var transparent_groups: Array[StringName] = []
+## Specifies the target used by minimum distance from target.
 @export var minimum_distance_from_target: float = 0.1
+## Configures the avoid obstacles enabled used by this type.
 @export var avoid_obstacles_enabled: bool = true
+## Sets the distance limit used by this type.
 @export var distance_limit: float = 0.0
+## Sets the camera radius used by this type.
 @export var camera_radius: float = 0.0
+## Selects the strategy behavior.
 @export var strategy: Strategy = Strategy.PULL_CAMERA_FORWARD
+## Configures the maximum effort used by this type.
 @export var maximum_effort: int = 4
+## Configures the smoothing time used by this type.
 @export var smoothing_time: float = 0.0
+## Controls the damping applied to damping.
 @export var damping: float = 0.0
+## Controls the damping applied to damping when occluded.
 @export var damping_when_occluded: float = 0.0
+## Configures the shot quality enabled used by this type.
 @export var shot_quality_enabled: bool = true
+## Sets the optimal distance used by this type.
 @export var optimal_distance: Vector2 = Vector2(1.0, 20.0)
+## Configures the max quality boost used by this type.
 @export var max_quality_boost: float = 1.0
 
 var _occluded: bool = false
 
+## Applies extension behavior after the specified pipeline stage.
 func post_pipeline_stage_callback(
 	camera: Node,
 	stage: CameramanCore.Stage,
@@ -68,6 +87,7 @@ func post_pipeline_stage_callback(
 			quality *= 0.05
 		state.shot_quality = clampf(quality * max_quality_boost, 0.0, 1.0)
 
+## Returns whether the camera view is currently occluded.
 func is_occluded() -> bool:
 	return _occluded
 

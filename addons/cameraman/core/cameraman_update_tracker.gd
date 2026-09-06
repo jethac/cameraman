@@ -1,9 +1,11 @@
 @tool
 class_name CameramanUpdateTracker
+## Provides the update tracker runtime helper.
 extends RefCounted
 
 var _records: Dictionary = {}
 
+## Records the target's latest process transform.
 func record_process(target: Node3D) -> void:
 	if target == null:
 		return
@@ -13,6 +15,7 @@ func record_process(target: Node3D) -> void:
 	record["process_transform"] = transform
 	_records[target] = record
 
+## Records the target's latest physics transform.
 func record_physics(target: Node3D) -> void:
 	if target == null:
 		return
@@ -24,6 +27,7 @@ func record_physics(target: Node3D) -> void:
 	record["process_transform"] = transform
 	_records[target] = record
 
+## Returns whether the target is driven by physics updates.
 func is_physics_driven(target: Node3D) -> bool:
 	if target == null:
 		return false

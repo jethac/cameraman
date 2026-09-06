@@ -1,13 +1,20 @@
 @tool
 class_name CameramanPanTilt
+## Provides the pan tilt camera pipeline component.
+## Key properties include `pan_axis`, `tilt_axis`, `reference_frame`, and related settings, which configure its
+## behavior.
 extends CameramanComponent
 
 enum ReferenceFrame { PARENT_OBJECT, TRACKING_TARGET, LOOK_AT_TARGET, WORLD }
 enum RecenteringTarget { NONE, AXIS_CENTER, PARENT_HEADING, TARGET_FORWARD }
 
+## Configures the pan axis used by this type.
 @export var pan_axis: CameramanInputAxis
+## Configures the tilt axis used by this type.
 @export var tilt_axis: CameramanInputAxis
+## Configures the reference frame used by this type.
 @export var reference_frame: ReferenceFrame = ReferenceFrame.PARENT_OBJECT
+## Specifies the target used by recentering target.
 @export var recentering_target: RecenteringTarget = RecenteringTarget.AXIS_CENTER
 
 func _init() -> void:
@@ -17,9 +24,11 @@ func _init() -> void:
 	tilt_axis = CameramanInputAxis.new()
 	tilt_axis.range = Vector2(-70.0, 70.0)
 
+## Returns the pipeline stage handled by this type.
 func stage() -> CameramanCore.Stage:
 	return CameramanCore.Stage.AIM
 
+## Applies this component's camera-state mutation for the current pipeline step.
 func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	var reference: Quaternion = _get_reference_rotation()
 	_apply_recentering(reference, delta)
@@ -30,6 +39,7 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	))
 	state.raw_orientation = (reference * local_rotation).normalized()
 
+## Returns the input axes.
 func get_input_axes() -> Array[Dictionary]:
 	return [
 		{"name": "pan", "axis": pan_axis, "owner": self},

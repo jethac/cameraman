@@ -1,7 +1,10 @@
 @tool
 class_name CameramanBrain2D
+## Coordinates camera selection and applies the final state to a Camera2D output.
+## Key properties include `pixel_perfect`, which configure its behavior.
 extends CameramanBrain
 
+## Configures the pixel perfect used by this type.
 @export var pixel_perfect: bool = false
 
 func _apply_state(state: CameramanCameraState) -> void:
