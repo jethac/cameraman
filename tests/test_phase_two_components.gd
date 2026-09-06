@@ -18,13 +18,13 @@ func test_orbital_three_ring_extremes_match_rings() -> void:
 	orbital.bottom_radius = 2.0
 	add_child_autofree(orbital)
 	orbital.vertical_axis.value = orbital.vertical_axis.range.x
-	var top: Vector3 = orbital.get_camera_point()
-	orbital.vertical_axis.value = orbital.vertical_axis.range.y
 	var bottom: Vector3 = orbital.get_camera_point()
-	assert_almost_eq(top.y, 4.0, 0.001)
-	assert_almost_eq(Vector2(top.x, top.z).length(), 7.0, 0.001)
+	orbital.vertical_axis.value = orbital.vertical_axis.range.y
+	var top: Vector3 = orbital.get_camera_point()
 	assert_almost_eq(bottom.y, -3.0, 0.001)
 	assert_almost_eq(Vector2(bottom.x, bottom.z).length(), 2.0, 0.001)
+	assert_almost_eq(top.y, 4.0, 0.001)
+	assert_almost_eq(Vector2(top.x, top.z).length(), 7.0, 0.001)
 
 func test_third_person_rig_follows_target_rotation() -> void:
 	var root: Node = Node.new()

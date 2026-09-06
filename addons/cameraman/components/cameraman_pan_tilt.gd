@@ -19,8 +19,9 @@ func _init() -> void:
 func stage() -> CameramanCore.Stage:
 	return CameramanCore.Stage.AIM
 
-func mutate_camera_state(state: CameramanCameraState, _delta: float) -> void:
+func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	var reference: Quaternion = _get_reference_rotation()
+	_apply_recentering(reference, delta)
 	var local_rotation: Quaternion = Quaternion.from_euler(Vector3(
 		deg_to_rad(tilt_axis.value),
 		deg_to_rad(pan_axis.value),
@@ -47,3 +48,32 @@ func _get_reference_rotation() -> Quaternion:
 		ReferenceFrame.WORLD:
 			return Quaternion.IDENTITY
 	return vcam.global_basis.get_rotation_quaternion() if vcam != null else Quaternion.IDENTITY
+
+func _apply_recentering(reference: Quaternion, delta: float) -> void:
+	if recentering_target == RecenteringTarget.NONE:
+		return
+	var heading: Vector3 = Vector3.FORWARD
+	match recentering_target:
+		RecenteringTarget.PARENT_HEADING:
+			var parent_node: Node3D = vcam.get_parent() as Node3D
+			if parent_node != null:
+				heading = parent_node.global_basis * Vector3.FORWARD
+		RecenteringTarget.TARGET_FORWARD:
+			heading = (
+				follow_target.global_basis * Vector3.FORWARD
+				if follow_target != null
+				else Vector3.FORWARD
+			)
+	var local_heading: Vector3 = reference.inverse() * heading
+	var pan: float = rad_to_deg(atan2(local_heading.x, local_heading.z))
+	var tilt: float = rad_to_deg(asin(clampf(local_heading.y, -1.0, 1.0)))
+	_recenter_axis(pan_axis, pan, delta)
+	_recenter_axis(tilt_axis, tilt, delta)
+
+func _recenter_axis(axis: CameramanInputAxis, destination: float, delta: float) -> void:
+	if axis == null or not axis.recentering_enabled:
+		return
+	var original_center: float = axis.center
+	axis.center = destination if recentering_target != RecenteringTarget.AXIS_CENTER else original_center
+	axis.do_recentering(delta, false)
+	axis.center = original_center

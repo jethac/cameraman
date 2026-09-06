@@ -52,6 +52,7 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 		binding_mode,
 		target
 	)
+	_apply_recentering(state, target, delta, reference)
 	var point: Vector3 = get_camera_point()
 	var desired: Vector3 = target.global_position + target_offset + reference * point
 	if not vcam.previous_state_is_valid:
@@ -75,14 +76,14 @@ func get_camera_point() -> Vector3:
 	var ring_point: Vector3
 	if t <= 0.5:
 		ring_point = _quadratic_ring(
-			Vector3(0.0, top_height, top_radius),
+			Vector3(0.0, bottom_height, bottom_radius),
 			Vector3(0.0, center_height, center_radius),
 			t * 2.0
 		)
 	else:
 		ring_point = _quadratic_ring(
 			Vector3(0.0, center_height, center_radius),
-			Vector3(0.0, bottom_height, bottom_radius),
+			Vector3(0.0, top_height, top_radius),
 			(t - 0.5) * 2.0
 		)
 	var radial_direction: Vector3 = Vector3(sin(horizontal), 0.0, cos(horizontal))
@@ -111,7 +112,12 @@ func force_camera_position(position: Vector3, _rotation: Quaternion) -> void:
 	vertical_axis.value = rad_to_deg(asin(clampf(local.y / radial_axis.value, -1.0, 1.0)))
 
 func on_transition_from_camera(from: Object, _world_up: Vector3, _delta: float) -> bool:
-	if from == null or not from.has_method("get_state"):
+	if (
+		vcam == null
+		or (int(vcam.get("blend_hint")) & CameramanCore.BlendHint.INHERIT_POSITION) == 0
+		or from == null
+		or not from.has_method("get_state")
+	):
 		return false
 	var previous: CameramanCameraState = from.get_state()
 	force_camera_position(previous.get_final_position(), previous.get_final_orientation())
@@ -121,6 +127,45 @@ func on_target_object_warped(target: Node3D, delta: Vector3) -> void:
 	if target == follow_target:
 		var camera_position: Vector3 = vcam.call("get_state").get_final_position()
 		force_camera_position(camera_position + delta, Quaternion.IDENTITY)
+
+func _apply_recentering(
+	_state: CameramanCameraState,
+	target: Node3D,
+	delta: float,
+	reference: Quaternion
+) -> void:
+	if recentering_target == RecenteringTarget.NONE:
+		return
+	var heading: Vector3 = Vector3.FORWARD
+	match recentering_target:
+		RecenteringTarget.PARENT_HEADING, RecenteringTarget.PARENT_FORWARD:
+			var parent_node: Node3D = vcam.get_parent() as Node3D
+			if parent_node != null:
+				heading = parent_node.global_basis * Vector3.FORWARD
+		RecenteringTarget.TRACKING_TARGET_FORWARD:
+			heading = target.global_basis * Vector3.FORWARD
+		RecenteringTarget.LOOK_AT_TARGET_FORWARD:
+			heading = (
+				look_at_target.global_basis * Vector3.FORWARD
+				if look_at_target != null
+				else target.global_basis * Vector3.FORWARD
+			)
+		_:
+			heading = Vector3.FORWARD
+	var local_heading: Vector3 = reference.inverse() * heading
+	var desired_horizontal: float = rad_to_deg(atan2(local_heading.x, local_heading.z))
+	var desired_vertical: float = rad_to_deg(asin(clampf(local_heading.y, -1.0, 1.0)))
+	_recenter_axis(horizontal_axis, desired_horizontal, delta)
+	_recenter_axis(vertical_axis, desired_vertical, delta)
+	_recenter_axis(radial_axis, radial_axis.center, delta)
+
+func _recenter_axis(axis: CameramanInputAxis, destination: float, delta: float) -> void:
+	if axis == null or not axis.recentering_enabled:
+		return
+	var original_center: float = axis.center
+	axis.center = destination if recentering_target != RecenteringTarget.AXIS_CENTER else original_center
+	axis.do_recentering(delta, false)
+	axis.center = original_center
 
 func _quadratic_ring(a: Vector3, b: Vector3, t: float) -> Vector3:
 	var control: Vector3 = a.lerp(b, 0.5)

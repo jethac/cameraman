@@ -60,3 +60,15 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 func force_camera_position(position: Vector3, _rotation: Quaternion) -> void:
 	if vcam != null:
 		vcam.call("set_meta", "cameraman_position_composer_position", position)
+
+func on_transition_from_camera(from: Object, _world_up: Vector3, _delta: float) -> bool:
+	if (
+		vcam == null
+		or (int(vcam.get("blend_hint")) & CameramanCore.BlendHint.INHERIT_POSITION) == 0
+		or from == null
+		or not from.has_method("get_state")
+	):
+		return false
+	var previous: CameramanCameraState = from.get_state()
+	force_camera_position(previous.get_final_position(), previous.get_final_orientation())
+	return true
