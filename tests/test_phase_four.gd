@@ -278,3 +278,31 @@ func test_projectile_registers_enemy_hit() -> void:
 	for _index in 24:
 		await get_tree().physics_frame
 	assert_eq(enemy.hit_count, 1)
+
+func test_player_latches_camera_relative_movement_basis() -> void:
+	var root := Node3D.new()
+	var camera := Camera3D.new()
+	camera.current = true
+	var player := CameramanDemoPlayerController.new()
+	player.mouse_look_enabled = false
+	root.add_child(camera)
+	root.add_child(player)
+	add_child_autofree(root)
+	Input.action_press("move_forward")
+	for _index in 3:
+		await get_tree().physics_frame
+	var first_direction := Vector2(player.velocity.x, player.velocity.z).normalized()
+	camera.rotation.y = PI * 0.5
+	for _index in 3:
+		await get_tree().physics_frame
+	var held_direction := Vector2(player.velocity.x, player.velocity.z).normalized()
+	Input.action_release("move_forward")
+	await get_tree().physics_frame
+	Input.action_press("move_forward")
+	for _index in 3:
+		await get_tree().physics_frame
+	var relatched_direction := Vector2(player.velocity.x, player.velocity.z).normalized()
+	Input.action_release("move_forward")
+	assert_almost_eq(held_direction, first_direction, Vector2.ONE * 0.01)
+	assert_lt(relatched_direction.dot(held_direction), 0.5)
+	assert_lt(relatched_direction.x, -0.8)
