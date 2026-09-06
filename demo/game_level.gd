@@ -99,9 +99,9 @@ func _create_ground_and_layout() -> void:
 		var x: float = 47.0 + float(index % 2) * 16.0
 		var z: float = 22.0 + float(index / 2) * 16.0
 		_add_static_box("ArenaPillar%d" % index, Vector3(x, 2.5, z), Vector3.ONE, Color("#d36b76"), 5.0)
-	_add_static_box("BridgeDeck", Vector3(82.0, 3.0, 30.0), Vector3(28.0, 0.6, 4.0), Color("#9e8a55"))
-	_add_static_box("BridgeRampStart", Vector3(58.0, 1.35, 30.0), Vector3(14.0, 0.6, 4.0), Color("#9e8a55"), 17.0)
-	_add_static_box("BridgeRampEnd", Vector3(103.0, 1.35, 30.0), Vector3(14.0, 0.6, 4.0), Color("#9e8a55"), -17.0)
+	_add_static_box("BridgeDeck", Vector3(80.0, 3.0, 30.0), Vector3(32.0, 0.6, 4.0), Color("#9e8a55"))
+	_add_ramp("BridgeRampStart", Vector3(59.5, -0.4, 30.0), Vector3(9.0, 3.6, 4.0), Color("#9e8a55"), 17.0)
+	_add_ramp("BridgeRampEnd", Vector3(103.5, -0.47, 30.0), Vector3(15.5, 3.6, 4.0), Color("#9e8a55"), -17.0)
 	var courtyard_color := Color("#3e746b")
 	_add_static_box("CourtyardEastWall", Vector3(120.0, 2.0, 30.0), Vector3(0.5, 4.0, 30.0), courtyard_color)
 	_add_static_box("CourtyardNorthWall", Vector3(107.5, 2.0, 44.75), Vector3(25.0, 4.0, 0.5), courtyard_color)
@@ -558,6 +558,44 @@ func _add_static_box(
 	var shape: BoxShape3D = BoxShape3D.new()
 	shape.size = size
 	collision.shape = shape
+	body.add_child(collision)
+	add_child(body)
+	return body
+
+func _add_ramp(
+	ramp_name: String,
+	position: Vector3,
+	size: Vector3,
+	color: Color,
+	height_rotation: float
+) -> StaticBody3D:
+	var body: StaticBody3D = StaticBody3D.new()
+	body.name = ramp_name
+	body.position = position
+	body.rotation.z = deg_to_rad(height_rotation)
+	body.collision_layer = 1
+	body.collision_mask = 1
+	body.add_to_group("level")
+	var mesh: MeshInstance3D = MeshInstance3D.new()
+	var box: BoxMesh = BoxMesh.new()
+	box.size = size
+	mesh.mesh = box
+	mesh.material_override = CameramanDemoHelpers.material(color)
+	body.add_child(mesh)
+	var half_x: float = size.x * 0.5
+	var half_z: float = size.z * 0.5
+	var top_y: float = size.y * 0.5
+	var top_a := Vector3(-half_x, top_y, -half_z)
+	var top_b := Vector3(half_x, top_y, -half_z)
+	var top_c := Vector3(half_x, top_y, half_z)
+	var top_d := Vector3(-half_x, top_y, half_z)
+	var ramp_shape: ConcavePolygonShape3D = ConcavePolygonShape3D.new()
+	ramp_shape.set_faces(PackedVector3Array([
+		top_a, top_b, top_c,
+		top_a, top_c, top_d,
+	]))
+	var collision: CollisionShape3D = CollisionShape3D.new()
+	collision.shape = ramp_shape
 	body.add_child(collision)
 	add_child(body)
 	return body
