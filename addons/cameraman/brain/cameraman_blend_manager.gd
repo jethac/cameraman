@@ -11,7 +11,7 @@ func update_root_frame(
 	world_up: Vector3,
 	delta: float,
 	default_definition: CameramanBlendDefinition,
-	owner: CameramanBrain
+	owner: Node
 ) -> bool:
 	if desired == null:
 		return false
