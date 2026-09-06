@@ -1,0 +1,16 @@
+; Engine configuration file.
+; Format:
+;   [section]
+;   param=value
+
+config_version=5
+
+[application]
+
+config/name="Cameraman"
+config/features=PackedStringArray("4.4")
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
