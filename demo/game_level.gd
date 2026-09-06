@@ -97,8 +97,8 @@ func _create_ground_and_layout() -> void:
 		var z: float = 22.0 + float(index / 2) * 16.0
 		_add_static_box("ArenaPillar%d" % index, Vector3(x, 2.5, z), Vector3.ONE, Color("#d36b76"), 5.0)
 	_add_static_box("BridgeDeck", Vector3(82.5, 3.0, 30.0), Vector3(25.0, 0.6, 2.0), Color("#9e8a55"))
-	_add_static_box("BridgeRampStart", Vector3(71.0, 1.5, 30.0), Vector3(3.0, 0.6, 2.0), Color("#9e8a55"), 10.0)
-	_add_static_box("BridgeRampEnd", Vector3(95.0, 1.5, 30.0), Vector3(3.0, 0.6, 2.0), Color("#9e8a55"), -10.0)
+	_add_static_box("BridgeRampStart", Vector3(65.0, 1.5, 30.0), Vector3(10.0, 0.6, 2.0), Color("#9e8a55"), 17.0)
+	_add_static_box("BridgeRampEnd", Vector3(100.0, 1.5, 30.0), Vector3(10.0, 0.6, 2.0), Color("#9e8a55"), -17.0)
 	var courtyard_color := Color("#3e746b")
 	_add_static_box("CourtyardEastWall", Vector3(120.0, 2.0, 30.0), Vector3(0.5, 4.0, 30.0), courtyard_color)
 	_add_static_box("CourtyardNorthWall", Vector3(107.5, 2.0, 44.75), Vector3(25.0, 4.0, 0.5), courtyard_color)
@@ -196,10 +196,9 @@ func _make_follow_camera(parent: Node3D) -> CameramanCamera:
 	avoidance.camera_radius = 0.3
 	avoidance.damping_into = 0.2
 	avoidance.damping_from_collision = 0.3
+	avoidance.ignore_group = &"player"
 	follow.avoid_obstacles = avoidance
 	camera.add_child(follow)
-	var look_at: CameramanHardLookAt = CameramanHardLookAt.new()
-	camera.add_child(look_at)
 	camera.add_child(_make_deoccluder())
 	camera.add_child(_make_listener(1.0))
 	return camera
@@ -352,7 +351,7 @@ func _make_sign_camera(parent: Node3D) -> CameramanCamera:
 
 func _create_triggers() -> void:
 	_make_trigger("ArenaTrigger", Vector3(55.0, 2.0, 30.0), Vector3(30.0, 4.0, 30.0), _arena)
-	_make_trigger("BridgeTrigger", Vector3(82.5, 3.0, 30.0), Vector3(25.0, 6.0, 5.0), _dolly)
+	_make_trigger("BridgeTrigger", Vector3(82.5, 3.0, 30.0), Vector3(25.0, 1.2, 5.0), _dolly)
 	_make_trigger("CourtyardTrigger", COURTYARD_CENTER + Vector3.UP * 2.0, Vector3(25.0, 4.0, 30.0), _courtyard)
 	_sign_area = _make_trigger("SignTrigger", Vector3(0.0, 2.0, -12.0), Vector3(8.0, 4.0, 8.0), _sign)
 
@@ -435,6 +434,7 @@ func _fire() -> void:
 		return
 	var projectile: CameramanDemoProjectile = CameramanDemoProjectile.new()
 	projectile.name = "Projectile%d" % _shot_count
+	add_child(projectile)
 	var pivot: Node3D = _player.get_node("PitchPivot") as Node3D
 	projectile.global_position = pivot.global_position
 	var forward: Vector3 = -_output.global_basis.z
@@ -450,7 +450,6 @@ func _fire() -> void:
 	definition.impulse_duration = 0.4
 	collision_source.impulse_definition = definition
 	projectile.add_child(collision_source)
-	add_child(projectile)
 	_recoil_source.generate_impulse_with_velocity(Vector3(0.0, 0.0, -0.35))
 	_shot_count += 1
 

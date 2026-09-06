@@ -35,7 +35,7 @@ func _physics_process(delta: float) -> void:
 	var target_velocity: Vector3 = move_direction * speed
 	velocity.x = move_toward(velocity.x, target_velocity.x, acceleration * delta)
 	velocity.z = move_toward(velocity.z, target_velocity.z, acceleration * delta)
-	if move_direction.length_squared() > 0.001:
+	if move_direction.length_squared() > 0.001 and not mouse_look_enabled:
 		rotation.y = lerp_angle(rotation.y, atan2(-move_direction.x, -move_direction.z), delta * 8.0)
 	move_and_slide()
 
