@@ -192,8 +192,8 @@ func _get_frustum_size(output: Camera3D, aspect_ratio: float) -> Vector2:
 	return Vector2(height * aspect_ratio, height)
 
 func _camera_is_live(camera: Node, brain: Node) -> bool:
-	if brain != null and brain.has_method("is_live"):
-		return bool(brain.call("is_live", camera))
+	if brain != null:
+		return CameramanCore.is_live_in_brain(brain, camera)
 	return CameramanCore.is_live(camera as Node3D)
 
 func _viewport_size(output: Camera3D = null) -> Vector2:

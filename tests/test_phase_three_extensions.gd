@@ -511,6 +511,102 @@ func test_storyboard_world_layers_are_isolated() -> void:
 		(second.get_child(0) as MeshInstance3D).layers
 	)
 
+func test_storyboard_visibility_resolves_live_clear_shot_child() -> void:
+	var root: Node3D = Node3D.new()
+	var output: Camera3D = Camera3D.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.MANUAL
+	var manager: CameramanClearShot = CameramanClearShot.new()
+	var selected: CameramanCamera = CameramanCamera.new()
+	selected.priority_enabled = true
+	selected.priority = 2
+	var unselected: CameramanCamera = CameramanCamera.new()
+	unselected.priority_enabled = true
+	unselected.priority = 1
+	var selected_storyboard: CameramanStoryboard = CameramanStoryboard.new()
+	selected_storyboard.image = ImageTexture.create_from_image(
+		Image.create(8, 8, false, Image.FORMAT_RGBA8)
+	)
+	var unselected_storyboard: CameramanStoryboard = CameramanStoryboard.new()
+	unselected_storyboard.image = selected_storyboard.image
+	selected.add_child(selected_storyboard)
+	unselected.add_child(unselected_storyboard)
+	manager.add_child(selected)
+	manager.add_child(unselected)
+	output.add_child(brain)
+	root.add_child(output)
+	root.add_child(manager)
+	add_child_autofree(root)
+	brain.manual_update(0.1)
+	selected_storyboard._process(0.1)
+	unselected_storyboard._process(0.1)
+	var selected_rect: TextureRect = (
+		selected_storyboard.get_child(0).get_child(0).get_child(0) as TextureRect
+	)
+	var unselected_rect: TextureRect = (
+		unselected_storyboard.get_child(0).get_child(0).get_child(0) as TextureRect
+	)
+	assert_true(selected_rect.visible)
+	assert_false(unselected_rect.visible)
+
+func test_storyboard_visibility_resolves_nested_live_managers() -> void:
+	var root: Node3D = Node3D.new()
+	var output: Camera3D = Camera3D.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.MANUAL
+	var outer: CameramanCameraManagerBase = CameramanCameraManagerBase.new()
+	var inner: CameramanCameraManagerBase = CameramanCameraManagerBase.new()
+	var leaf: CameramanCamera = CameramanCamera.new()
+	var storyboard: CameramanStoryboard = CameramanStoryboard.new()
+	storyboard.image = ImageTexture.create_from_image(
+		Image.create(8, 8, false, Image.FORMAT_RGBA8)
+	)
+	leaf.add_child(storyboard)
+	inner.add_child(leaf)
+	outer.add_child(inner)
+	output.add_child(brain)
+	root.add_child(output)
+	root.add_child(outer)
+	add_child_autofree(root)
+	brain.manual_update(0.1)
+	storyboard._process(0.1)
+	var texture_rect: TextureRect = (
+		storyboard.get_child(0).get_child(0).get_child(0) as TextureRect
+	)
+	assert_true(texture_rect.visible)
+
+func test_find_brain_for_resolves_channel_specific_manager_leaves() -> void:
+	var root: Node3D = Node3D.new()
+	var output_one: Camera3D = Camera3D.new()
+	var output_two: Camera3D = Camera3D.new()
+	var brain_one: CameramanBrain = CameramanBrain.new()
+	var brain_two: CameramanBrain = CameramanBrain.new()
+	brain_one.update_method = CameramanBrain.UpdateMethod.MANUAL
+	brain_two.update_method = CameramanBrain.UpdateMethod.MANUAL
+	brain_one.channel_mask = 1
+	brain_two.channel_mask = 2
+	var manager_one: CameramanCameraManagerBase = CameramanCameraManagerBase.new()
+	var manager_two: CameramanCameraManagerBase = CameramanCameraManagerBase.new()
+	manager_one.output_channel = 1
+	manager_two.output_channel = 2
+	var leaf_one: CameramanCamera = CameramanCamera.new()
+	var leaf_two: CameramanCamera = CameramanCamera.new()
+	leaf_one.output_channel = 1
+	leaf_two.output_channel = 2
+	manager_one.add_child(leaf_one)
+	manager_two.add_child(leaf_two)
+	output_one.add_child(brain_one)
+	output_two.add_child(brain_two)
+	root.add_child(output_one)
+	root.add_child(output_two)
+	root.add_child(manager_one)
+	root.add_child(manager_two)
+	add_child_autofree(root)
+	brain_one.manual_update(0.1)
+	brain_two.manual_update(0.1)
+	assert_eq(CameramanCore.find_brain_for(leaf_one), brain_one)
+	assert_eq(CameramanCore.find_brain_for(leaf_two), brain_two)
+
 func test_storyboard_world_space_updates_after_brain_same_frame() -> void:
 	var root: Node3D = Node3D.new()
 	var output: Camera3D = Camera3D.new()
