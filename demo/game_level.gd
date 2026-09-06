@@ -91,16 +91,17 @@ func _create_ground_and_layout() -> void:
 	_add_static_box("CorridorBendB", Vector3(41.5, 2.0, 8.75), Vector3(0.5, 4.0, 14.5), corridor_color)
 	var arena_color := Color("#6b4e72")
 	_add_static_box("ArenaBackWall", Vector3(55.0, 2.5, 44.75), Vector3(30.0, 5.0, 0.5), arena_color)
-	_add_static_box("ArenaEastWall", Vector3(69.75, 2.5, 30.0), Vector3(0.5, 5.0, 30.0), arena_color)
+	_add_static_box("ArenaEastWallSouth", Vector3(69.75, 2.5, 20.5), Vector3(0.5, 5.0, 11.0), arena_color)
+	_add_static_box("ArenaEastWallNorth", Vector3(69.75, 2.5, 39.5), Vector3(0.5, 5.0, 11.0), arena_color)
 	_add_static_box("ArenaWestWallA", Vector3(40.25, 2.5, 37.5), Vector3(0.5, 5.0, 15.0), arena_color)
 	_add_static_box("ArenaWestWallB", Vector3(40.25, 2.5, 19.0), Vector3(0.5, 5.0, 5.0), arena_color)
 	for index in 4:
 		var x: float = 47.0 + float(index % 2) * 16.0
 		var z: float = 22.0 + float(index / 2) * 16.0
 		_add_static_box("ArenaPillar%d" % index, Vector3(x, 2.5, z), Vector3.ONE, Color("#d36b76"), 5.0)
-	_add_static_box("BridgeDeck", Vector3(82.5, 3.0, 30.0), Vector3(25.0, 0.6, 2.0), Color("#9e8a55"))
-	_add_static_box("BridgeRampStart", Vector3(65.0, 1.5, 30.0), Vector3(10.0, 0.6, 2.0), Color("#9e8a55"), 17.0)
-	_add_static_box("BridgeRampEnd", Vector3(100.0, 1.5, 30.0), Vector3(10.0, 0.6, 2.0), Color("#9e8a55"), -17.0)
+	_add_static_box("BridgeDeck", Vector3(82.0, 3.0, 30.0), Vector3(28.0, 0.6, 4.0), Color("#9e8a55"))
+	_add_static_box("BridgeRampStart", Vector3(58.0, 1.35, 30.0), Vector3(14.0, 0.6, 4.0), Color("#9e8a55"), 17.0)
+	_add_static_box("BridgeRampEnd", Vector3(103.0, 1.35, 30.0), Vector3(14.0, 0.6, 4.0), Color("#9e8a55"), -17.0)
 	var courtyard_color := Color("#3e746b")
 	_add_static_box("CourtyardEastWall", Vector3(120.0, 2.0, 30.0), Vector3(0.5, 4.0, 30.0), courtyard_color)
 	_add_static_box("CourtyardNorthWall", Vector3(107.5, 2.0, 44.75), Vector3(25.0, 4.0, 0.5), courtyard_color)
@@ -108,7 +109,7 @@ func _create_ground_and_layout() -> void:
 	for index in 3:
 		_add_static_box(
 			"CourtyardPillar%d" % index,
-			Vector3(101.0 + float(index) * 7.0, 2.0, 30.0),
+			Vector3(101.0 + float(index) * 7.0, 2.0, 36.0),
 			Vector3(1.0, 4.0, 1.0),
 			Color("#5ca58f")
 		)
