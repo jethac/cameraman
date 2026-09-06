@@ -40,7 +40,7 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	if camera_distance > 0.0 and not vcam.previous_state_is_valid:
 		state.raw_position = desired
 	var correction: Vector3 = CameramanComposerMath.move_to_composition(
-		state.raw_position,
+		state.get_final_position(),
 		state.raw_orientation,
 		target_position,
 		state.lens,
@@ -52,7 +52,7 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 		state.raw_position -= correction
 	if dead_zone_depth > 0.0:
 		var depth: float = -(
-			state.raw_orientation.inverse() * (target_position - state.raw_position)
+			state.raw_orientation.inverse() * (target_position - state.get_final_position())
 		).z
 		if depth < dead_zone_depth:
 			state.raw_position -= forward * (dead_zone_depth - depth)
