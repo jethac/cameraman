@@ -1,29 +1,26 @@
-[gd_resource type="Resource" script_class="CameramanNoiseProfile" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="CameramanNoiseProfile" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://addons/cameraman/noise/cameraman_noise_profile.gd" id="1"]
 [ext_resource type="Script" path="res://addons/cameraman/noise/cameraman_noise_channel.gd" id="2"]
 [ext_resource type="Script" path="res://addons/cameraman/noise/cameraman_noise_params.gd" id="3"]
 
-[sub_resource type="Resource" id="NoiseX"]
-script = ExtResource("3")
-frequency = 1.8
-amplitude = 0.015
-
-[sub_resource type="Resource" id="NoiseY"]
-script = ExtResource("3")
-frequency = 2.2
-amplitude = 0.012
-
-[sub_resource type="Resource" id="NoiseZ"]
+[sub_resource type="Resource" id="X"]
 script = ExtResource("3")
 frequency = 1.4
 amplitude = 0.01
-
+[sub_resource type="Resource" id="Y"]
+script = ExtResource("3")
+frequency = 1.8
+amplitude = 0.01
+[sub_resource type="Resource" id="Z"]
+script = ExtResource("3")
+frequency = 1.1
+amplitude = 0.008
 [sub_resource type="Resource" id="Channel"]
 script = ExtResource("2")
-x = SubResource("NoiseX")
-y = SubResource("NoiseY")
-z = SubResource("NoiseZ")
+x = SubResource("X")
+y = SubResource("Y")
+z = SubResource("Z")
 
 [resource]
 script = ExtResource("1")
