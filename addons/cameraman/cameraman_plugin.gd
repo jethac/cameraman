@@ -172,7 +172,7 @@ func _commit_nodes(action_name: String, parent: Node, nodes: Array[Node]) -> voi
 	var undo: EditorUndoRedoManager = get_undo_redo()
 	undo.create_action(action_name)
 	for node in nodes:
-		undo.add_do_method(parent, "add_child", node)
+		undo.add_do_method(parent, "add_child", node, true)
 		undo.add_do_method(self, "_own_recursive", node)
 		undo.add_do_reference(node)
 		undo.add_undo_method(parent, "remove_child", node)
