@@ -1,5 +1,16 @@
 extends GutTest
 
+class CountingExtension extends CameramanExtension:
+	var calls: Dictionary = {}
+
+	func post_pipeline_stage_callback(
+		_camera: Node,
+		stage: CameramanCore.Stage,
+		_state: CameramanCameraState,
+		_delta: float
+	) -> void:
+		calls[stage] = int(calls.get(stage, 0)) + 1
+
 func test_hard_lock_and_hard_look_at() -> void:
 	var target: Node3D = Node3D.new()
 	target.position = Vector3(2.0, 3.0, 4.0)
@@ -53,6 +64,39 @@ func test_camera_without_components_preserves_transform() -> void:
 	root.add_child(camera)
 	camera.update_state(Vector3.UP, 0.1)
 	assert_almost_eq(camera.get_state().raw_position, Vector3(2.0, 4.0, 6.0), Vector3.ONE * 0.001)
+
+func test_post_pipeline_callbacks_fire_once_per_stage() -> void:
+	var root: Node = Node.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	var follow: CameramanFollow = CameramanFollow.new()
+	var composer: CameramanPositionComposer = CameramanPositionComposer.new()
+	var extension: CountingExtension = CountingExtension.new()
+	camera.add_child(follow)
+	camera.add_child(composer)
+	camera.add_child(extension)
+	root.add_child(camera)
+	add_child_autofree(root)
+	camera.update_state(Vector3.UP, 0.1)
+	for stage in [
+		CameramanCore.Stage.BODY,
+		CameramanCore.Stage.AIM,
+		CameramanCore.Stage.NOISE,
+		CameramanCore.Stage.FINALIZE
+	]:
+		assert_eq(extension.calls.get(stage, 0), 1)
+
+	var empty_camera: CameramanCamera = CameramanCamera.new()
+	var empty_extension: CountingExtension = CountingExtension.new()
+	empty_camera.add_child(empty_extension)
+	root.add_child(empty_camera)
+	empty_camera.update_state(Vector3.UP, 0.1)
+	for stage in [
+		CameramanCore.Stage.BODY,
+		CameramanCore.Stage.AIM,
+		CameramanCore.Stage.NOISE,
+		CameramanCore.Stage.FINALIZE
+	]:
+		assert_eq(empty_extension.calls.get(stage, 0), 1)
 
 func test_noise_only_adds_corrections() -> void:
 	var profile: CameramanNoiseProfile = CameramanNoiseProfile.new()
