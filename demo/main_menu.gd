@@ -2,7 +2,7 @@ class_name CameramanDemoMainMenu
 extends Control
 
 const DEMOS: Array[String] = [
-	"third_person", "free_look", "platformer_2d", "dolly",
+	"game_level", "third_person", "free_look", "platformer_2d", "dolly",
 	"clear_shot", "split_screen", "impulse", "sequence", "state_driven"
 ]
 
