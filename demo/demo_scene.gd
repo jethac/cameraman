@@ -588,8 +588,6 @@ func _create_2d_demo() -> void:
 	camera.lens.orthographic_size = 720.0
 	camera.position = Vector3(_platformer_player.position.x, _platformer_player.position.y, 0.0)
 	add_child(camera)
-	_platformer_player.camera_min_x = PLATFORMER_LEVEL_LEFT + 1280.0
-	_platformer_player.camera_max_x = PLATFORMER_LEVEL_RIGHT - 1280.0
 	var follow: CameramanFollow = CameramanFollow.new()
 	follow.name = "Follow"
 	var position_composer: CameramanPositionComposer = CameramanPositionComposer.new()

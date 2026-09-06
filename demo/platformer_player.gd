@@ -4,8 +4,6 @@ extends CharacterBody2D
 @export var speed: float = 320.0
 @export var jump_velocity: float = 420.0
 var camera_target: CameramanCamera
-var camera_min_x: float = -INF
-var camera_max_x: float = INF
 
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
@@ -16,5 +14,4 @@ func _physics_process(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, axis * speed, 1600.0 * delta)
 	move_and_slide()
 	if camera_target != null:
-		var camera_x: float = clampf(global_position.x, camera_min_x, camera_max_x)
-		camera_target.position = Vector3(camera_x, global_position.y, 0.0)
+		camera_target.position = Vector3(global_position.x, global_position.y, 0.0)
