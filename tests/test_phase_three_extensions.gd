@@ -253,6 +253,35 @@ func test_confiner_3d_incremental_hull_handles_sphere_samples() -> void:
 	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, inside, 0.1)
 	assert_almost_eq(inside.get_final_position(), Vector3.ONE, Vector3.ONE * 0.001)
 
+func test_confiner_3d_hull_handles_millimetre_scale() -> void:
+	var camera: Node3D = Node3D.new()
+	add_child_autofree(camera)
+	var shape: CollisionShape3D = CollisionShape3D.new()
+	var convex: ConvexPolygonShape3D = ConvexPolygonShape3D.new()
+	convex.points = PackedVector3Array([
+		Vector3(-0.001, -0.001, -0.001), Vector3(0.001, -0.001, -0.001),
+		Vector3(-0.001, 0.001, -0.001), Vector3(0.001, 0.001, -0.001),
+		Vector3(-0.001, -0.001, 0.001), Vector3(0.001, -0.001, 0.001),
+		Vector3(-0.001, 0.001, 0.001), Vector3(0.001, 0.001, 0.001)
+	])
+	shape.shape = convex
+	camera.add_child(shape)
+	var extension: CameramanConfiner3D = CameramanConfiner3D.new()
+	autofree(extension)
+	var outside: CameramanCameraState = CameramanCameraState.create_default()
+	outside.raw_position = Vector3(0.002, 0.0, 0.0)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, outside, 0.1)
+	assert_false(extension._cached_faces.is_empty())
+	assert_almost_eq(
+		outside.get_final_position(),
+		Vector3(0.001, 0.0, 0.0),
+		Vector3.ONE * 0.00001
+	)
+	var inside: CameramanCameraState = CameramanCameraState.create_default()
+	inside.raw_position = Vector3(0.0005, 0.0, 0.0)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, inside, 0.1)
+	assert_almost_eq(inside.get_final_position(), inside.raw_position, Vector3.ONE * 0.00001)
+
 func test_confiner_3d_invalidates_cache_when_shape_points_change() -> void:
 	var camera: Node3D = Node3D.new()
 	add_child_autofree(camera)
@@ -606,6 +635,40 @@ func test_storyboard_world_space_supports_shifted_frustum_projection() -> void:
 		Vector3.ONE * 0.01
 	)
 
+func test_storyboard_world_space_clamps_distance_to_clip_range() -> void:
+	var root: Node3D = Node3D.new()
+	var output: Camera3D = Camera3D.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.MANUAL
+	output.add_child(brain)
+	root.add_child(output)
+	var camera: CameramanCamera = CameramanCamera.new()
+	var storyboard: CameramanStoryboard = CameramanStoryboard.new()
+	storyboard.render_mode = CameramanStoryboard.RenderMode.WORLD_SPACE
+	storyboard.aspect = CameramanStoryboard.Aspect.STRETCH_TO_FIT
+	storyboard.image = ImageTexture.create_from_image(
+		Image.create(32, 32, false, Image.FORMAT_RGBA8)
+	)
+	camera.add_child(storyboard)
+	root.add_child(camera)
+	add_child_autofree(root)
+	brain.manual_update(0.1)
+	output.near = 0.5
+	output.far = 10.0
+	storyboard.world_distance = 0.1
+	storyboard._process(0.1)
+	var quad: MeshInstance3D = storyboard.get_child(0) as MeshInstance3D
+	var near_distance: float = -output.global_basis.z.dot(
+		quad.global_position - output.global_position
+	)
+	assert_almost_eq(near_distance, 0.506, 0.0001)
+	storyboard.world_distance = 50.0
+	storyboard._process(0.1)
+	var far_distance: float = -output.global_basis.z.dot(
+		quad.global_position - output.global_position
+	)
+	assert_lte(far_distance, 9.9)
+
 func test_storyboard_world_layers_are_isolated() -> void:
 	var root: Node3D = Node3D.new()
 	var first_camera: CameramanCamera = CameramanCamera.new()
@@ -812,6 +875,32 @@ func test_storyboard_camera_space_binds_output_viewport() -> void:
 	storyboard.render_mode = CameramanStoryboard.RenderMode.SCREEN_SPACE_OVERLAY
 	storyboard._process(0.1)
 	assert_null((storyboard.get_child(0) as CanvasLayer).custom_viewport)
+	root.remove_child(subviewport)
+	subviewport.free()
+
+func test_storyboard_camera_space_binds_2d_output_viewport() -> void:
+	var root: Node = Node.new()
+	var subviewport: SubViewport = SubViewport.new()
+	subviewport.size = Vector2i(320, 240)
+	root.add_child(subviewport)
+	var output: Camera2D = Camera2D.new()
+	var brain: CameramanBrain2D = CameramanBrain2D.new()
+	brain.update_method = CameramanBrain.UpdateMethod.MANUAL
+	output.add_child(brain)
+	subviewport.add_child(output)
+	var camera: CameramanCamera = CameramanCamera.new()
+	var storyboard: CameramanStoryboard = CameramanStoryboard.new()
+	storyboard.render_mode = CameramanStoryboard.RenderMode.SCREEN_SPACE_CAMERA
+	storyboard.image = ImageTexture.create_from_image(
+		Image.create(16, 16, false, Image.FORMAT_RGBA8)
+	)
+	camera.add_child(storyboard)
+	root.add_child(camera)
+	add_child_autofree(root)
+	brain.manual_update(0.1)
+	storyboard._process(0.1)
+	var layer: CanvasLayer = storyboard.get_child(0) as CanvasLayer
+	assert_eq(layer.custom_viewport, subviewport)
 	root.remove_child(subviewport)
 	subviewport.free()
 

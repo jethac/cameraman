@@ -16,6 +16,7 @@ var _cached_shape: Shape3D
 var _cached_faces: PackedVector3Array = PackedVector3Array()
 var _cached_planes: Array[Plane] = []
 var _connected_shape: Shape3D
+var _hull_epsilon: float = 0.0
 
 func post_pipeline_stage_callback(
 	camera: Node,
@@ -141,6 +142,11 @@ func _build_hull(points: PackedVector3Array) -> void:
 			unique.append(point)
 	if unique.size() < 4:
 		return
+	var extent_sq: float = 0.0
+	for i in range(unique.size()):
+		for j in range(i + 1, unique.size()):
+			extent_sq = maxf(extent_sq, unique[i].distance_squared_to(unique[j]))
+	_hull_epsilon = sqrt(extent_sq) * 1e-5
 	var tetrahedron: Array[int] = _find_initial_tetrahedron(unique)
 	if tetrahedron.is_empty():
 		return
@@ -166,7 +172,7 @@ func _build_hull(points: PackedVector3Array) -> void:
 		for face_index in range(faces.size()):
 			var face: Dictionary = faces[face_index]
 			var plane: Plane = _face_plane(face, unique)
-			if plane.distance_to(unique[point_index]) > 0.00001:
+			if plane.distance_to(unique[point_index]) > _hull_epsilon:
 				visible.append(face_index)
 				visible_lookup[face_index] = true
 				_add_horizon_edge(edges, int(face["a"]), int(face["b"]))
@@ -206,7 +212,9 @@ func _find_initial_tetrahedron(points: Array[Vector3]) -> Array[int]:
 				longest_distance = distance
 				first = i
 				second = j
-	if longest_distance <= 0.00001:
+	var extent_sq: float = longest_distance
+	var epsilon_sq: float = maxf(extent_sq * 1e-10, 1e-24)
+	if longest_distance <= epsilon_sq:
 		return []
 	var line: Vector3 = points[second] - points[first]
 	var line_length_squared: float = line.length_squared()
@@ -220,7 +228,7 @@ func _find_initial_tetrahedron(points: Array[Vector3]) -> Array[int]:
 		if line_distance > farthest_line_distance:
 			farthest_line_distance = line_distance
 			third = i
-	if third < 0 or farthest_line_distance <= 0.00001:
+	if third < 0 or farthest_line_distance <= epsilon_sq:
 		return []
 	var base_plane: Plane = Plane(points[first], points[second], points[third])
 	var fourth: int = -1
@@ -232,7 +240,8 @@ func _find_initial_tetrahedron(points: Array[Vector3]) -> Array[int]:
 		if plane_distance > farthest_plane_distance:
 			farthest_plane_distance = plane_distance
 			fourth = i
-	if fourth < 0 or farthest_plane_distance <= 0.00001:
+	var epsilon: float = sqrt(extent_sq) * 1e-5
+	if fourth < 0 or farthest_plane_distance <= epsilon:
 		return []
 	return [first, second, third, fourth]
 
@@ -268,7 +277,7 @@ func _add_horizon_edge(edges: Dictionary, a: int, b: int) -> void:
 
 func _inside_all_planes(point: Vector3) -> bool:
 	for plane in _cached_planes:
-		if plane.distance_to(point) > 0.0001:
+		if plane.distance_to(point) > _hull_epsilon:
 			return false
 	return true
 

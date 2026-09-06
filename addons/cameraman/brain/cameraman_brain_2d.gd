@@ -30,6 +30,10 @@ func _get_output_camera_2d() -> Camera2D:
 		return get_node_or_null(camera_path) as Camera2D
 	return get_parent() as Camera2D
 
+func get_output_viewport() -> Viewport:
+	var output: Camera2D = _get_output_camera_2d()
+	return output.get_viewport() if output != null else null
+
 func _has_pixel_perfect_extension() -> bool:
 	if active_virtual_camera == null:
 		return false

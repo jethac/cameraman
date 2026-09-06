@@ -131,16 +131,16 @@ func _update_screen_space(brain: Node, visible_now: bool) -> void:
 	var output: Camera3D
 	if brain != null and brain.has_method("get_output_camera"):
 		output = brain.call("get_output_camera") as Camera3D
+	var output_viewport: Viewport
+	if brain != null and brain.has_method("get_output_viewport"):
+		output_viewport = brain.call("get_output_viewport") as Viewport
 	if render_mode == RenderMode.SCREEN_SPACE_CAMERA:
-		var output_viewport: Viewport = (
-			output.get_viewport() if output != null else null
-		)
 		if output_viewport != null and output_viewport != _layer.get_viewport():
 			_layer.custom_viewport = output_viewport
 	var viewport_size: Vector2 = (
-		_viewport_size(output)
+		_viewport_size_of(output_viewport)
 		if render_mode == RenderMode.SCREEN_SPACE_CAMERA
-		else _viewport_size()
+		else _viewport_size_of(get_viewport())
 	)
 	var split: float = clampf(split_view, 0.0, 1.0)
 	_screen_container.position = Vector2.ZERO
@@ -175,9 +175,10 @@ func _update_world_space(_camera: Node, brain: Node, visible_now: bool) -> void:
 	if output == null or image == null or not visible_now:
 		_world_quad.visible = false
 		return
+	var distance: float = _effective_world_distance(output)
 	var viewport_size: Vector2 = _viewport_size(output)
 	var aspect_ratio: float = viewport_size.x / maxf(viewport_size.y, 1.0)
-	var frame_size: Vector2 = _get_frustum_size(output, aspect_ratio)
+	var frame_size: Vector2 = _get_frustum_size(output, aspect_ratio, distance)
 	var image_size: Vector2 = image.get_size()
 	var image_aspect: float = image_size.x / maxf(image_size.y, 1.0)
 	var display_size: Vector2 = frame_size
@@ -210,28 +211,31 @@ func _update_world_space(_camera: Node, brain: Node, visible_now: bool) -> void:
 	_world_quad.global_basis = Basis(Quaternion(view_axis, deg_to_rad(rotation))) * view_basis
 	var forward: Vector3 = -view_basis.z
 	var center_offset: Vector2 = (center - Vector2(0.5, 0.5)) * frame_size
-	center_offset += _get_frustum_shift(output)
+	center_offset += _get_frustum_shift(output, distance)
 	_world_quad.global_position = (
 		output.global_position
-		+ forward * maxf(world_distance, 0.001)
+		+ forward * distance
 		+ view_basis.x * center_offset.x
 		+ view_basis.y * center_offset.y
 	)
 	_world_quad.visible = true
 
-func _get_frustum_size(output: Camera3D, aspect_ratio: float) -> Vector2:
+func _effective_world_distance(output: Camera3D) -> float:
+	return clampf(world_distance, output.near * 1.01 + 0.001, output.far * 0.99)
+
+func _get_frustum_size(output: Camera3D, aspect_ratio: float, distance: float) -> Vector2:
 	if output.projection == Camera3D.PROJECTION_ORTHOGONAL:
 		return Vector2(output.size * aspect_ratio, output.size)
 	if output.projection == Camera3D.PROJECTION_FRUSTUM:
-		var scale_factor: float = maxf(world_distance, 0.001) / maxf(output.near, 0.001)
+		var scale_factor: float = distance / maxf(output.near, 0.001)
 		return Vector2(output.size * aspect_ratio, output.size) * scale_factor
-	var height: float = 2.0 * maxf(world_distance, 0.001) * tan(deg_to_rad(output.fov) * 0.5)
+	var height: float = 2.0 * distance * tan(deg_to_rad(output.fov) * 0.5)
 	return Vector2(height * aspect_ratio, height)
 
-func _get_frustum_shift(output: Camera3D) -> Vector2:
+func _get_frustum_shift(output: Camera3D, distance: float) -> Vector2:
 	if output.projection != Camera3D.PROJECTION_FRUSTUM:
 		return Vector2.ZERO
-	var scale_factor: float = maxf(world_distance, 0.001) / maxf(output.near, 0.001)
+	var scale_factor: float = distance / maxf(output.near, 0.001)
 	return output.frustum_offset * scale_factor
 
 func _camera_is_live(camera: Node, brain: Node) -> bool:
@@ -240,7 +244,11 @@ func _camera_is_live(camera: Node, brain: Node) -> bool:
 	return CameramanCore.is_live(camera as Node3D)
 
 func _viewport_size(output: Camera3D = null) -> Vector2:
-	var viewport: Viewport = output.get_viewport() if output != null else get_viewport()
+	return _viewport_size_of(output.get_viewport() if output != null else null)
+
+func _viewport_size_of(viewport: Viewport = null) -> Vector2:
+	if viewport == null:
+		viewport = get_viewport()
 	if viewport != null:
 		var size: Vector2 = viewport.get_visible_rect().size
 		if size.x > 0.0 and size.y > 0.0:
