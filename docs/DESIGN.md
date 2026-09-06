@@ -189,6 +189,9 @@ Exposes `get_sphere() -> [center, radius]`, `get_bounding_box() -> AABB`, `get_v
 
 ### `CameramanBrain` (Node)
 Child of (or `@export camera_path` to) a `Camera3D`. Implements the *mixer* duck-type (`get_camera_name`, `is_live(cam)`, `get_state`).
+`CameramanCore.notify_target_warped(target, position_delta)` broadcasts target
+warps to registered cameras and requests a cut on each registered brain's next
+transition. `cut_next_transition()` exposes the one-shot brain-side request.
 ```
 @export var show_debug_text := false ; @export var show_camera_frustum := true
 @export var ignore_time_scale := false     # use Engine.time_scale-independent dt

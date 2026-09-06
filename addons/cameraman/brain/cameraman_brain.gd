@@ -40,6 +40,7 @@ var _update_tracker: CameramanUpdateTracker = CameramanUpdateTracker.new()
 var _update_token: int = 0
 var _frustum_mesh: ImmediateMesh
 var _frustum_instance: MeshInstance3D
+var _cut_next_transition: bool = false
 
 func _init() -> void:
 	default_blend = CameramanBlendDefinition.new()
@@ -68,6 +69,12 @@ func _physics_process(delta: float) -> void:
 func manual_update(delta: float = -1.0) -> void:
 	var step: float = delta if delta >= 0.0 else get_process_delta_time()
 	_update_frame(step, _frame + 1)
+
+func cut_next_transition() -> void:
+	_cut_next_transition = true
+
+func on_target_warped(_target: Node3D) -> void:
+	cut_next_transition()
 
 func is_live(camera: CameramanVirtualCameraBase) -> bool:
 	return _blend_manager.is_live(camera)
@@ -131,6 +138,10 @@ func get_blend_definition(
 	to_source: Object,
 	fallback: CameramanBlendDefinition
 ) -> CameramanBlendDefinition:
+	if _cut_next_transition:
+		var cut_definition: CameramanBlendDefinition = CameramanBlendDefinition.new()
+		cut_definition.style = CameramanBlendDefinition.Style.CUT
+		return cut_definition
 	if CameramanCore.get_blend_override.is_valid():
 		var override_value: Object = CameramanCore.get_blend_override.call(
 			from_source,
@@ -161,6 +172,8 @@ func _update_frame(raw_delta: float, clock_frame: int) -> void:
 		return
 	var outgoing: Object = _blend_manager.active_source
 	var changed: bool = _blend_manager.update_root_frame(desired, world_up, delta, default_blend, self)
+	if changed:
+		_cut_next_transition = false
 	if changed and desired is CameramanVirtualCameraBase:
 		active_virtual_camera = desired as CameramanVirtualCameraBase
 		camera_activated.emit(self, desired, outgoing)

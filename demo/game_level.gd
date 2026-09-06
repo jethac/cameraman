@@ -437,8 +437,7 @@ func _respawn_player() -> void:
 	_player.global_position = SPAWN_POSITION + Vector3.UP
 	_player.velocity = Vector3.ZERO
 	_health = 100.0
-	if _brain.active_virtual_camera != null:
-		_brain.active_virtual_camera.on_target_object_warped(_player, delta)
+	CameramanCore.notify_target_warped(_player, delta)
 
 func _fire() -> void:
 	if _output == null:

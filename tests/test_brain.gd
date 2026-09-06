@@ -74,6 +74,55 @@ func test_single_camera_override_selects_camera_a() -> void:
 	brain.manual_update(0.1)
 	assert_eq(brain.active_virtual_camera, camera_a)
 
+func test_target_warp_cuts_next_brain_transition() -> void:
+	var root: Node = Node.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.MANUAL
+	brain.default_blend.style = CameramanBlendDefinition.Style.LINEAR
+	brain.default_blend.time = 2.0
+	var first: CameramanCamera = CameramanCamera.new()
+	var second: CameramanCamera = CameramanCamera.new()
+	first.position = Vector3(1.0, 0.0, 0.0)
+	second.position = Vector3(10.0, 0.0, 0.0)
+	first.priority_enabled = true
+	second.priority_enabled = true
+	first.priority = 2
+	second.priority = 1
+	root.add_child(brain)
+	root.add_child(first)
+	root.add_child(second)
+	add_child_autofree(root)
+	var target := Node3D.new()
+	root.add_child(target)
+	brain.manual_update(0.1)
+	assert_eq(brain.active_virtual_camera, first)
+	CameramanCore.notify_target_warped(target, Vector3(100.0, 0.0, 0.0))
+	second.priority = 3
+	brain.manual_update(0.1)
+	assert_false(brain.is_blending)
+	assert_almost_eq(brain.current_camera_state.get_final_position(), second.position, Vector3.ONE * 0.001)
+
+func test_target_transition_blends_without_warp_notification() -> void:
+	var root: Node = Node.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.MANUAL
+	brain.default_blend.style = CameramanBlendDefinition.Style.LINEAR
+	brain.default_blend.time = 2.0
+	var first: CameramanCamera = CameramanCamera.new()
+	var second: CameramanCamera = CameramanCamera.new()
+	first.priority_enabled = true
+	second.priority_enabled = true
+	first.priority = 2
+	second.priority = 1
+	root.add_child(brain)
+	root.add_child(first)
+	root.add_child(second)
+	add_child_autofree(root)
+	brain.manual_update(0.1)
+	second.priority = 3
+	brain.manual_update(0.1)
+	assert_true(brain.is_blending)
+
 func test_blend_interruption_keeps_current_position_continuous() -> void:
 	var root: Node = Node.new()
 	var output: Camera3D = Camera3D.new()

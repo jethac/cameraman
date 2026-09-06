@@ -56,6 +56,15 @@ static func get_registry() -> CameramanRegistry:
 		registry = CameramanRegistry.new()
 	return registry
 
+static func notify_target_warped(target: Node3D, position_delta: Vector3) -> void:
+	for camera in get_registry().get_cameras():
+		if camera.has_method("on_target_object_warped"):
+			camera.on_target_object_warped(target, position_delta)
+	for brain_value in brains.duplicate():
+		var brain: Node = brain_value as Node
+		if is_instance_valid(brain) and brain.has_method("on_target_warped"):
+			brain.on_target_warped(target)
+
 static func get_events() -> CameramanEventBus:
 	if events == null:
 		events = CameramanEventBus.new()

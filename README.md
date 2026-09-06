@@ -18,6 +18,12 @@ The brain selects enabled virtual cameras by channel and effective priority,
 evaluates the component pipeline, blends transitions, and writes the result to
 the output camera.
 
+When a tracked target is teleported, call
+`CameramanCore.notify_target_warped(target, position_delta)`. This forwards the
+warp to registered cameras and cuts each brain's next camera transition.
+`CameramanBrain.cut_next_transition()` can request the same one-shot cut
+directly.
+
 ## Concepts
 
 - **State and pipeline:** BODY, AIM, NOISE, and FINALIZE produce a raw shot plus corrections.
