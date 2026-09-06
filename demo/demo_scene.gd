@@ -39,6 +39,8 @@ func _process(delta: float) -> void:
 			else:
 				Input.action_release("move_forward")
 				Input.action_press("move_left")
+		elif demo_kind == "platformer_2d":
+			Input.action_press("move_right")
 		else:
 			Input.action_press("move_forward")
 		if demo_kind == "third_person" or demo_kind == "free_look":
