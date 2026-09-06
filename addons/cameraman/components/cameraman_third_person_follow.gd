@@ -179,24 +179,46 @@ func _cast_shape(
 ) -> float:
 	var space: PhysicsDirectSpaceState3D = world_node.get_world_3d().direct_space_state
 	var filtered_exclusions: Array[RID] = exclusions.duplicate()
-	var collect_query: PhysicsShapeQueryParameters3D = PhysicsShapeQueryParameters3D.new()
-	collect_query.shape = shape
-	collect_query.transform = Transform3D(Basis.IDENTITY, start)
-	collect_query.motion = end - start
-	collect_query.collision_mask = avoid_obstacles.collision_mask
-	collect_query.exclude = filtered_exclusions
-	for hit in space.intersect_shape(collect_query, 32):
-		var collider: Object = hit.get("collider") as Object
-		if _is_ignored_group(collider):
-			_add_collision_exclusion(filtered_exclusions, collider)
 	var query: PhysicsShapeQueryParameters3D = PhysicsShapeQueryParameters3D.new()
 	query.shape = shape
 	query.transform = Transform3D(Basis.IDENTITY, start)
-	query.motion = end - start
 	query.collision_mask = avoid_obstacles.collision_mask
-	query.exclude = filtered_exclusions
-	var result: PackedFloat32Array = space.cast_motion(query)
-	return result[0] if not result.is_empty() else 1.0
+	var motion: Vector3 = end - start
+	var last_safe: float = 0.0
+	for _index in 8:
+		query.transform = Transform3D(Basis.IDENTITY, start)
+		query.motion = motion
+		query.exclude = filtered_exclusions
+		var result: PackedFloat32Array = space.cast_motion(query)
+		if result.is_empty():
+			return last_safe
+		var safe: float = clampf(result[0], 0.0, 1.0)
+		var unsafe: float = clampf(result[1], safe, 1.0)
+		last_safe = safe
+		if safe >= 1.0:
+			return 1.0
+		var probe_fraction: float = clampf(unsafe + 0.01, 0.0, 1.0)
+		query.transform = Transform3D(Basis.IDENTITY, start + motion * probe_fraction)
+		query.motion = Vector3.ZERO
+		var hits: Array[Dictionary] = space.intersect_shape(query, 32)
+		if hits.is_empty():
+			return safe
+		var found_collider: bool = false
+		var all_ignored: bool = true
+		for hit in hits:
+			var collider: Object = hit.get("collider") as Object
+			if collider == null:
+				continue
+			found_collider = true
+			if not _is_ignored_group(collider):
+				all_ignored = false
+				break
+			_add_collision_exclusion(filtered_exclusions, collider)
+		if not found_collider:
+			return safe
+		if not all_ignored:
+			return safe
+	return last_safe
 
 func _get_collision_exclusions() -> Array[RID]:
 	var result: Array[RID] = []
@@ -232,13 +254,15 @@ func _intersect_ray_ignoring_groups(
 	exclusions: Array[RID]
 ) -> Dictionary:
 	var filtered_exclusions: Array[RID] = exclusions.duplicate()
-	for _index in 4:
+	var last_hit: Dictionary = {}
+	for _index in 16:
 		query.exclude = filtered_exclusions
 		var hit: Dictionary = space.intersect_ray(query)
 		if hit.is_empty() or not _is_ignored_group(hit.get("collider") as Object):
 			return hit
+		last_hit = hit
 		_add_collision_exclusion(filtered_exclusions, hit.get("collider") as Object)
-	return {}
+	return last_hit
 
 func _is_ignored_group(collider: Object) -> bool:
 	if collider == null or not collider is Node:

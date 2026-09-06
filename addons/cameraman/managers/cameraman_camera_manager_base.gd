@@ -89,10 +89,6 @@ func on_transition_from_camera(from: Object, world_up: Vector3, delta: float) ->
 	else:
 		super.on_transition_from_camera(from, world_up, delta)
 
-func on_target_object_warped(target: Node3D, position_delta: Vector3) -> void:
-	for camera in get_child_cameras():
-		camera.on_target_object_warped(target, position_delta)
-
 func force_camera_position(position: Vector3, rotation: Quaternion) -> void:
 	if live_child != null:
 		live_child.force_camera_position(position, rotation)

@@ -29,8 +29,6 @@ enum AngularDampingMode { EULER, QUATERNION }
 var _assigned_basis: Basis
 var _assigned_target: Node3D
 var _assigned_captured: bool = false
-var _previous_position: Vector3
-var _previous_rotation: Quaternion = Quaternion.IDENTITY
 
 func stage() -> CameramanCore.Stage:
 	return CameramanCore.Stage.BODY
@@ -108,18 +106,6 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 			))
 		else:
 			state.raw_orientation = desired_rotation
-	_previous_position = desired_position
-	_previous_rotation = desired_rotation
-
-## Rebases stored follow position when the tracked target teleports.
-func on_target_object_warped(target: Node3D, delta: Vector3) -> void:
-	if target == follow_target:
-		_previous_position += delta
-
-func force_camera_position(position: Vector3, rotation: Quaternion) -> void:
-	_previous_position = position
-	_previous_rotation = rotation
-
 ## Reports the longest configured position or rotation damping time.
 func get_max_damp_time() -> float:
 	return maxf(

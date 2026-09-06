@@ -155,10 +155,9 @@ func on_transition_from_camera(from: Object, _world_up: Vector3, _delta: float) 
 	force_camera_position(previous.get_final_position(), previous.get_final_orientation())
 	return true
 
-func on_target_object_warped(target: Node3D, delta: Vector3) -> void:
+func on_target_object_warped(target: Node3D, _delta: Vector3) -> void:
 	if target == follow_target:
-		var camera_position: Vector3 = vcam.call("get_state").get_final_position()
-		force_camera_position(camera_position + delta, Quaternion.IDENTITY)
+		force_camera_position(vcam.global_position, Quaternion.IDENTITY)
 
 func _apply_recentering(
 	_state: CameramanCameraState,

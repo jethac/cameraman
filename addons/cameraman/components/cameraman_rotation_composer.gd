@@ -43,3 +43,7 @@ func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 		delta,
 		damping
 	)
+
+func on_target_object_warped(target: Node3D, delta: Vector3) -> void:
+	if look_at_target != null and target == look_at_target:
+		_lookahead.offset_history(delta)

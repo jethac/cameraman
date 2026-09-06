@@ -1,5 +1,11 @@
 extends GutTest
 
+class WarpCountingExtension extends CameramanExtension:
+	var warp_count: int = 0
+
+	func on_target_object_warped(_camera: Node, _target: Node3D, _delta: Vector3) -> void:
+		warp_count += 1
+
 class QualityExtension extends CameramanExtension:
 	var quality: float = 0.0
 
@@ -42,6 +48,24 @@ func test_clear_shot_selects_highest_quality_child() -> void:
 	var brain: CameramanBrain = scene.brain
 	brain.manual_update(0.1)
 	assert_eq(manager.live_child, second)
+
+func test_manager_and_child_receive_one_warp_dispatch_each() -> void:
+	var root: Node3D = Node3D.new()
+	var target: Node3D = Node3D.new()
+	var manager: CameramanClearShot = CameramanClearShot.new()
+	var child: CameramanCamera = CameramanCamera.new()
+	var manager_extension: WarpCountingExtension = WarpCountingExtension.new()
+	var child_extension: WarpCountingExtension = WarpCountingExtension.new()
+	manager.add_child(manager_extension)
+	child.add_child(child_extension)
+	manager.add_child(child)
+	root.add_child(target)
+	root.add_child(manager)
+	add_child_autofree(root)
+	var warp: Vector3 = Vector3(10.0, 0.0, 0.0)
+	CameramanCore.notify_target_warped(target, warp)
+	assert_eq(manager_extension.warp_count, 1)
+	assert_eq(child_extension.warp_count, 1)
 
 func test_manager_does_not_reparent_child_world_state() -> void:
 	var manager: CameramanClearShot = CameramanClearShot.new()

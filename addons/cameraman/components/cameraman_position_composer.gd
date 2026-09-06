@@ -77,6 +77,11 @@ func force_camera_position(position: Vector3, _rotation: Quaternion) -> void:
 	if vcam != null:
 		vcam.call("set_meta", "cameraman_position_composer_position", position)
 
+func on_target_object_warped(target: Node3D, delta: Vector3) -> void:
+	var tracked_target: Node3D = look_at_target if look_at_target != null else follow_target
+	if target == tracked_target:
+		_lookahead.offset_history(delta)
+
 func on_transition_from_camera(from: Object, _world_up: Vector3, _delta: float) -> bool:
 	if (
 		vcam == null

@@ -26,6 +26,96 @@ func test_orbital_three_ring_extremes_match_rings() -> void:
 	assert_almost_eq(top.y, 4.0, 0.001)
 	assert_almost_eq(Vector2(top.x, top.z).length(), 7.0, 0.001)
 
+func test_follow_rebases_camera_when_target_warps() -> void:
+	var root: Node3D = Node3D.new()
+	var output: Camera3D = Camera3D.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.MANUAL
+	var target: Node3D = Node3D.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	camera.set_follow(target)
+	var follow: CameramanFollow = CameramanFollow.new()
+	follow.position_damping = Vector3.ONE
+	camera.add_child(follow)
+	output.add_child(brain)
+	root.add_child(target)
+	root.add_child(output)
+	root.add_child(camera)
+	add_child_autofree(root)
+	for _index in 6:
+		brain.manual_update(0.1)
+	var settled_x: float = camera.get_state().get_final_position().x
+	var warp: Vector3 = Vector3(100.0, 0.0, 0.0)
+	target.position += warp
+	CameramanCore.notify_target_warped(target, warp)
+	brain.manual_update(0.1)
+	assert_almost_eq(
+		camera.get_state().get_final_position().x,
+		settled_x + warp.x,
+		0.5
+	)
+
+func test_orbital_rebases_camera_when_target_warps() -> void:
+	var root: Node3D = Node3D.new()
+	var output: Camera3D = Camera3D.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.MANUAL
+	var target: Node3D = Node3D.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	camera.set_follow(target)
+	var orbital: CameramanOrbitalFollow = CameramanOrbitalFollow.new()
+	orbital.position_damping = Vector3.ONE
+	orbital.radial_axis.value = 5.0
+	camera.add_child(orbital)
+	output.add_child(brain)
+	root.add_child(target)
+	root.add_child(output)
+	root.add_child(camera)
+	add_child_autofree(root)
+	for _index in 6:
+		brain.manual_update(0.1)
+	var settled: Vector3 = camera.get_state().get_final_position()
+	var warp: Vector3 = Vector3(100.0, 0.0, 0.0)
+	target.position += warp
+	CameramanCore.notify_target_warped(target, warp)
+	brain.manual_update(0.1)
+	assert_almost_eq(
+		camera.get_state().get_final_position(),
+		settled + warp,
+		Vector3.ONE * 0.5
+	)
+
+func test_third_person_rebases_camera_when_target_warps() -> void:
+	var root: Node3D = Node3D.new()
+	var output: Camera3D = Camera3D.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.MANUAL
+	var target: Node3D = Node3D.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	camera.set_follow(target)
+	var follow: CameramanThirdPersonFollow = CameramanThirdPersonFollow.new()
+	follow.shoulder_offset = Vector3(0.6, 1.6, 0.0)
+	follow.camera_distance = 4.5
+	follow.avoid_obstacles.enabled = false
+	camera.add_child(follow)
+	output.add_child(brain)
+	root.add_child(target)
+	root.add_child(output)
+	root.add_child(camera)
+	add_child_autofree(root)
+	for _index in 6:
+		brain.manual_update(0.1)
+	var settled: Vector3 = camera.get_state().get_final_position()
+	var warp: Vector3 = Vector3(100.0, 0.0, 0.0)
+	target.position += warp
+	CameramanCore.notify_target_warped(target, warp)
+	brain.manual_update(0.1)
+	assert_almost_eq(
+		camera.get_state().get_final_position(),
+		settled + warp,
+		Vector3.ONE * 0.5
+	)
+
 func test_third_person_rig_follows_target_rotation() -> void:
 	var root: Node = Node.new()
 	var target: Node3D = Node3D.new()
@@ -78,6 +168,87 @@ func test_third_person_follow_ignores_follow_target_collision() -> void:
 		4.5,
 		0.01
 	)
+
+func test_third_person_follow_filters_ignored_bodies_along_ray_and_sphere_casts() -> void:
+	var root: Node3D = Node3D.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	var follow: CameramanThirdPersonFollow = CameramanThirdPersonFollow.new()
+	follow.avoid_obstacles.enabled = true
+	follow.avoid_obstacles.ignore_group = &"ignored_obstacle"
+	follow.avoid_obstacles.camera_radius = 0.3
+	camera.add_child(follow)
+	var ignored: StaticBody3D = _add_test_obstacle(root, 2.0, true)
+	_add_test_obstacle(root, 4.0, false)
+	root.add_child(camera)
+	add_child_autofree(root)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var exclusions: Array[RID] = []
+	var ray_fraction: float = follow._cast_ray_fraction(
+		camera,
+		Vector3.ZERO,
+		Vector3(0.0, 0.0, 6.0),
+		exclusions
+	)
+	var sphere: SphereShape3D = SphereShape3D.new()
+	sphere.radius = 0.3
+	var sphere_fraction: float = follow._cast_shape(
+		camera,
+		sphere,
+		Vector3.ZERO,
+		Vector3(0.0, 0.0, 6.0),
+		exclusions
+	)
+	assert_gt(ray_fraction, 0.5)
+	assert_lt(ray_fraction, 0.8)
+	assert_gt(sphere_fraction, 0.45)
+	assert_lt(sphere_fraction, 0.8)
+	assert_ne(ignored, null)
+
+func test_third_person_follow_ignores_only_ignored_bodies() -> void:
+	var root: Node3D = Node3D.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	var follow: CameramanThirdPersonFollow = CameramanThirdPersonFollow.new()
+	follow.avoid_obstacles.enabled = true
+	follow.avoid_obstacles.ignore_group = &"ignored_obstacle"
+	follow.avoid_obstacles.camera_radius = 0.3
+	camera.add_child(follow)
+	_add_test_obstacle(root, 2.0, true)
+	root.add_child(camera)
+	add_child_autofree(root)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var exclusions: Array[RID] = []
+	var ray_fraction: float = follow._cast_ray_fraction(
+		camera,
+		Vector3.ZERO,
+		Vector3(0.0, 0.0, 6.0),
+		exclusions
+	)
+	var sphere: SphereShape3D = SphereShape3D.new()
+	sphere.radius = 0.3
+	var sphere_fraction: float = follow._cast_shape(
+		camera,
+		sphere,
+		Vector3.ZERO,
+		Vector3(0.0, 0.0, 6.0),
+		exclusions
+	)
+	assert_almost_eq(ray_fraction, 1.0, 0.001)
+	assert_almost_eq(sphere_fraction, 1.0, 0.001)
+
+func _add_test_obstacle(root: Node3D, z: float, ignored: bool) -> StaticBody3D:
+	var body: StaticBody3D = StaticBody3D.new()
+	body.position.z = z
+	if ignored:
+		body.add_to_group("ignored_obstacle")
+	var shape_node: CollisionShape3D = CollisionShape3D.new()
+	var box: BoxShape3D = BoxShape3D.new()
+	box.size = Vector3(4.0, 4.0, 0.5)
+	shape_node.shape = box
+	body.add_child(shape_node)
+	root.add_child(body)
+	return body
 
 func test_third_person_follow_respects_minimum_obstacle_distance() -> void:
 	var root: Node3D = Node3D.new()

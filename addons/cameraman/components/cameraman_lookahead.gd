@@ -32,3 +32,10 @@ func predict(time_ahead: float, ignore_y: bool = false) -> Vector3:
 ## Discards stored motion history so the next sample starts fresh.
 func clear() -> void:
 	_samples.clear()
+
+## Shifts every recorded sample by a target warp delta without changing its timing.
+func offset_history(delta: Vector3) -> void:
+	for index in range(_samples.size()):
+		var sample: Dictionary = _samples[index]
+		sample["position"] = (sample["position"] as Vector3) + delta
+		_samples[index] = sample

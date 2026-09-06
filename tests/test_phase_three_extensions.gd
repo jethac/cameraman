@@ -13,6 +13,17 @@ func test_follow_zoom_uses_analytic_fov() -> void:
 	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, state, 0.1)
 	assert_almost_eq(state.lens.fov_degrees, rad_to_deg(2.0 * atan(0.5)), 0.01)
 
+func test_lookahead_offsets_history_after_target_warp() -> void:
+	var lookahead: CameramanLookahead = CameramanLookahead.new()
+	lookahead.record(Vector3.ZERO, 0.0)
+	lookahead.record(Vector3.ONE, 1.0)
+	lookahead.offset_history(Vector3(100.0, 0.0, 0.0))
+	assert_almost_eq(
+		lookahead.predict(1.0),
+		Vector3(102.0, 2.0, 2.0),
+		Vector3.ONE * 0.001
+	)
+
 func test_impulse_event_expires_and_filters_channels() -> void:
 	var definition: CameramanImpulseDefinition = CameramanImpulseDefinition.new()
 	definition.impulse_channel = 2
