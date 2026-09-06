@@ -126,6 +126,10 @@ func get_output_camera() -> Camera3D:
 		return get_node_or_null(camera_path) as Camera3D
 	return get_parent() as Camera3D
 
+func get_output_viewport() -> Viewport:
+	var output: Camera3D = get_output_camera()
+	return output.get_viewport() if output != null else null
+
 func get_blend_definition(
 	from_source: Object,
 	to_source: Object,
