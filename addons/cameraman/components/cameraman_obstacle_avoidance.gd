@@ -6,5 +6,4 @@ extends Resource
 @export var camera_radius: float = 0.2
 @export var damping_into: float = 0.1
 @export var damping_from_collision: float = 0.2
-@export var ignore_group: StringName
 @export var ignore_tag_group_name: StringName

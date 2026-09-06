@@ -194,9 +194,7 @@ func _intersect_ray_ignoring_groups(
 func _is_ignored_group(collider: Object) -> bool:
 	if collider == null or not collider is Node:
 		return false
-	var group_name: StringName = avoid_obstacles.ignore_group
-	if group_name.is_empty():
-		group_name = avoid_obstacles.ignore_tag_group_name
+	var group_name: StringName = avoid_obstacles.ignore_tag_group_name
 	if group_name.is_empty():
 		return false
 	var node: Node = collider as Node
