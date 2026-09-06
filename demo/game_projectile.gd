@@ -5,7 +5,7 @@ var lifetime: float = 4.0
 var _hit_registered: bool = false
 
 func _ready() -> void:
-	collision_layer = 1
+	collision_layer = 0
 	collision_mask = 1
 	contact_monitor = true
 	max_contacts_reported = 8
