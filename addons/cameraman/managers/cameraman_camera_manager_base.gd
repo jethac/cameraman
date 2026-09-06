@@ -55,8 +55,6 @@ func internal_update_state(world_up: Vector3, delta: float) -> void:
 	var callback: Callable = Callable(self, "_update_child")
 	_manager_state = _manager.update(world_up, delta, callback)
 	_state = _manager_state
-	global_position = _manager_state.raw_position
-	global_basis = Basis(_manager_state.raw_orientation)
 	previous_state_is_valid = true
 
 func get_state() -> CameramanCameraState:

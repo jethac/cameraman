@@ -43,6 +43,18 @@ func test_clear_shot_selects_highest_quality_child() -> void:
 	brain.manual_update(0.1)
 	assert_eq(manager.live_child, second)
 
+func test_manager_does_not_reparent_child_world_state() -> void:
+	var manager: CameramanClearShot = CameramanClearShot.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	camera.position = Vector3(5.0, 3.0, 2.0)
+	manager.add_child(camera)
+	var scene: Dictionary = _manager_scene(manager)
+	var brain: CameramanBrain = scene.brain
+	var expected: Vector3 = camera.global_position
+	brain.manual_update(0.1)
+	brain.manual_update(0.1)
+	assert_almost_eq(camera.global_position, expected, Vector3.ONE * 0.001)
+
 func test_clear_shot_min_duration_allows_switch_after_hold() -> void:
 	var manager: CameramanClearShot = CameramanClearShot.new()
 	manager.min_duration = 0.5
