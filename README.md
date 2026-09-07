@@ -2,7 +2,7 @@
 
 **A composable procedural camera system for Godot 4.**
 
-[Product page](https://cameraman.jethachan.net) · [Live WebGL demo](https://cameraman.jethachan.net/demo/) · [MIT License](LICENSE)
+[Splatterface Games](https://www.splatterfacegames.com/) · [Repository](https://github.com/splatterfacegames/cameraman) · [Product page](https://cameraman.jethachan.net/) · [Live WebGL demo](https://cameraman.jethachan.net/demo/) · [MIT License](LICENSE)
 
 Cameraman lets you build polished 2D and 3D camera behavior from small,
 reusable parts. Define virtual cameras, attach the components each shot needs,
