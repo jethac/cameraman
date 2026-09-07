@@ -323,6 +323,17 @@ func _closest_point_on_faces(point: Vector3) -> Vector3:
 static func _closest_point_on_triangle(point: Vector3, a: Vector3, b: Vector3, c: Vector3) -> Vector3:
 	var ab: Vector3 = b - a
 	var ac: Vector3 = c - a
+	var normal: Vector3 = ab.cross(ac)
+	if normal.length_squared() == 0.0:
+		var bc: Vector3 = c - b
+		var ab_length: float = ab.length_squared()
+		var ac_length: float = ac.length_squared()
+		var bc_length: float = bc.length_squared()
+		if ab_length >= ac_length and ab_length >= bc_length:
+			return Geometry3D.get_closest_point_to_segment(point, a, b)
+		if ac_length >= bc_length:
+			return Geometry3D.get_closest_point_to_segment(point, a, c)
+		return Geometry3D.get_closest_point_to_segment(point, b, c)
 	var ap: Vector3 = point - a
 	var d1: float = ab.dot(ap)
 	var d2: float = ac.dot(ap)
@@ -335,7 +346,7 @@ static func _closest_point_on_triangle(point: Vector3, a: Vector3, b: Vector3, c
 		return b
 	var vc: float = d1 * d4 - d3 * d2
 	if vc <= 0.0 and d1 >= 0.0 and d3 <= 0.0:
-		return a + ab * (d1 / maxf(d1 - d3, 0.000001))
+		return a + ab * (d1 / (d1 - d3))
 	var cp: Vector3 = point - c
 	var d5: float = ab.dot(cp)
 	var d6: float = ac.dot(cp)
@@ -343,9 +354,9 @@ static func _closest_point_on_triangle(point: Vector3, a: Vector3, b: Vector3, c
 		return c
 	var vb: float = d5 * d2 - d1 * d6
 	if vb <= 0.0 and d2 >= 0.0 and d6 <= 0.0:
-		return a + ac * (d2 / maxf(d2 - d6, 0.000001))
+		return a + ac * (d2 / (d2 - d6))
 	var va: float = d3 * d6 - d5 * d4
 	if va <= 0.0 and (d4 - d3) >= 0.0 and (d5 - d6) >= 0.0:
-		return b + (c - b) * ((d4 - d3) / maxf((d4 - d3) + (d5 - d6), 0.000001))
-	var denominator: float = 1.0 / maxf(va + vb + vc, 0.000001)
+		return b + (c - b) * ((d4 - d3) / ((d4 - d3) + (d5 - d6)))
+	var denominator: float = 1.0 / (va + vb + vc)
 	return a + ab * (vb * denominator) + ac * (vc * denominator)
