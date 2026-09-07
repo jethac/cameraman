@@ -17,6 +17,13 @@ var _cached_faces: PackedVector3Array = PackedVector3Array()
 var _cached_planes: Array[Plane] = []
 var _connected_shape: Shape3D
 var _hull_epsilon: float = 0.0
+var _bvh_bounds: Array[AABB] = []
+var _bvh_left: PackedInt32Array = PackedInt32Array()
+var _bvh_right: PackedInt32Array = PackedInt32Array()
+var _bvh_start: PackedInt32Array = PackedInt32Array()
+var _bvh_count: PackedInt32Array = PackedInt32Array()
+var _bvh_tris: PackedInt32Array = PackedInt32Array()
+var _bvh_sort_axis: int = 0
 
 func post_pipeline_stage_callback(
 	camera: Node,
@@ -60,6 +67,13 @@ func invalidate_cache() -> void:
 	_cached_shape = null
 	_cached_faces = PackedVector3Array()
 	_cached_planes = []
+	_bvh_bounds = []
+	_bvh_left = PackedInt32Array()
+	_bvh_right = PackedInt32Array()
+	_bvh_start = PackedInt32Array()
+	_bvh_count = PackedInt32Array()
+	_bvh_tris = PackedInt32Array()
+	_hull_epsilon = 0.0
 
 func _exit_tree() -> void:
 	_disconnect_shape()
@@ -120,34 +134,35 @@ func _ensure_faces(shape: Shape3D) -> void:
 	if _cached_shape == shape and not _cached_faces.is_empty():
 		return
 	_cached_shape = shape
+	_cached_faces = PackedVector3Array()
 	_cached_planes = []
+	_hull_epsilon = 0.0
 	if shape is ConcavePolygonShape3D:
 		_cached_faces = (shape as ConcavePolygonShape3D).get_faces()
 	else:
 		var convex: ConvexPolygonShape3D = shape as ConvexPolygonShape3D
-		_cached_faces = PackedVector3Array()
 		if convex.points.size() < 4:
 			return
 		_build_hull(convex.points)
+	if not _cached_faces.is_empty():
+		_build_bvh()
 
 func _build_hull(points: PackedVector3Array) -> void:
 	var unique: Array[Vector3] = []
+	var unique_lookup: Dictionary = {}
 	for point in points:
-		var duplicate: bool = false
-		for existing in unique:
-			if existing.is_equal_approx(point):
-				duplicate = true
-				break
-		if not duplicate:
+		var key: Vector3 = point.snapped(Vector3.ONE * 1e-6)
+		if not unique_lookup.has(key):
+			unique_lookup[key] = true
 			unique.append(point)
 	if unique.size() < 4:
 		return
-	var extent_sq: float = 0.0
-	for i in range(unique.size()):
-		for j in range(i + 1, unique.size()):
-			extent_sq = maxf(extent_sq, unique[i].distance_squared_to(unique[j]))
+	var bounds: AABB = AABB(unique[0], Vector3.ZERO)
+	for point in unique:
+		bounds = bounds.expand(point)
+	var extent_sq: float = bounds.size.length_squared()
 	_hull_epsilon = sqrt(extent_sq) * 1e-5
-	var tetrahedron: Array[int] = _find_initial_tetrahedron(unique)
+	var tetrahedron: Array[int] = _find_initial_tetrahedron(unique, extent_sq, bounds)
 	if tetrahedron.is_empty():
 		return
 	var interior: Vector3 = Vector3.ZERO
@@ -201,18 +216,24 @@ func _build_hull(points: PackedVector3Array) -> void:
 		_cached_faces.append(unique[int(face["c"])])
 		_cached_planes.append(_face_plane(face, unique))
 
-func _find_initial_tetrahedron(points: Array[Vector3]) -> Array[int]:
+func _find_initial_tetrahedron(
+	points: Array[Vector3],
+	extent_sq: float,
+	bounds: AABB
+) -> Array[int]:
+	var axis: int = 0
+	if bounds.size.y > bounds.size.x and bounds.size.y >= bounds.size.z:
+		axis = 1
+	elif bounds.size.z > bounds.size.x:
+		axis = 2
 	var first: int = 0
 	var second: int = 0
-	var longest_distance: float = 0.0
-	for i in range(points.size()):
-		for j in range(i + 1, points.size()):
-			var distance: float = points[i].distance_squared_to(points[j])
-			if distance > longest_distance:
-				longest_distance = distance
-				first = i
-				second = j
-	var extent_sq: float = longest_distance
+	for index in range(1, points.size()):
+		if points[index][axis] < points[first][axis]:
+			first = index
+		if points[index][axis] > points[second][axis]:
+			second = index
+	var longest_distance: float = points[first].distance_squared_to(points[second])
 	var epsilon_sq: float = maxf(extent_sq * 1e-10, 1e-24)
 	if longest_distance <= epsilon_sq:
 		return []
@@ -275,6 +296,74 @@ func _add_horizon_edge(edges: Dictionary, a: int, b: int) -> void:
 	else:
 		edges[key] = {"a": a, "b": b, "count": 1}
 
+func _build_bvh() -> void:
+	_bvh_bounds = []
+	_bvh_left = PackedInt32Array()
+	_bvh_right = PackedInt32Array()
+	_bvh_start = PackedInt32Array()
+	_bvh_count = PackedInt32Array()
+	_bvh_tris = PackedInt32Array()
+	var triangle_count: int = _cached_faces.size() / 3
+	for index in range(triangle_count):
+		_bvh_tris.append(index)
+	if triangle_count > 0:
+		_build_bvh_node(0, triangle_count)
+
+func _build_bvh_node(start: int, end: int) -> int:
+	var bounds: AABB = _triangle_aabb(_bvh_tris[start])
+	var centroid_bounds: AABB = AABB(_triangle_centroid(_bvh_tris[start]), Vector3.ZERO)
+	for index in range(start + 1, end):
+		var triangle: int = _bvh_tris[index]
+		bounds = bounds.merge(_triangle_aabb(triangle))
+		centroid_bounds = centroid_bounds.expand(_triangle_centroid(triangle))
+	bounds = bounds.grow(maxf(_hull_epsilon, 1e-6))
+	var node: int = _bvh_bounds.size()
+	_bvh_bounds.append(bounds)
+	_bvh_left.append(-1)
+	_bvh_right.append(-1)
+	_bvh_start.append(0)
+	_bvh_count.append(0)
+	var count: int = end - start
+	if count <= 4 or centroid_bounds.size.length_squared() <= 1e-20:
+		_bvh_start[node] = start
+		_bvh_count[node] = count
+		return node
+	var axis: int = 0
+	if centroid_bounds.size.y > centroid_bounds.size.x:
+		axis = 1
+	if centroid_bounds.size.z > centroid_bounds.size[axis]:
+		axis = 2
+	var sorted: Array[int] = []
+	for index in range(start, end):
+		sorted.append(_bvh_tris[index])
+	_bvh_sort_axis = axis
+	sorted.sort_custom(Callable(self, "_sort_bvh_triangles"))
+	for index in range(sorted.size()):
+		_bvh_tris[start + index] = sorted[index]
+	var middle: int = start + count / 2
+	var left: int = _build_bvh_node(start, middle)
+	var right: int = _build_bvh_node(middle, end)
+	_bvh_left[node] = left
+	_bvh_right[node] = right
+	return node
+
+func _sort_bvh_triangles(first: int, second: int) -> bool:
+	return _triangle_centroid(first)[_bvh_sort_axis] < _triangle_centroid(second)[_bvh_sort_axis]
+
+func _triangle_aabb(triangle: int) -> AABB:
+	var index: int = triangle * 3
+	return AABB(_cached_faces[index], Vector3.ZERO).expand(
+		_cached_faces[index + 1]
+	).expand(_cached_faces[index + 2])
+
+func _triangle_centroid(triangle: int) -> Vector3:
+	var index: int = triangle * 3
+	return (
+		_cached_faces[index]
+		+ _cached_faces[index + 1]
+		+ _cached_faces[index + 2]
+	) / 3.0
+
 func _inside_all_planes(point: Vector3) -> bool:
 	for plane in _cached_planes:
 		if plane.distance_to(point) > _hull_epsilon:
@@ -300,33 +389,70 @@ func _inside_mesh(point: Vector3) -> bool:
 
 func _inside_mesh_with_direction(point: Vector3, direction: Vector3) -> bool:
 	var hits: int = 0
-	for index in range(0, _cached_faces.size() - 2, 3):
-		var hit: Variant = Geometry3D.ray_intersects_triangle(
-			point,
-			direction,
-			_cached_faces[index],
-			_cached_faces[index + 1],
-			_cached_faces[index + 2]
-		)
-		if hit != null:
-			hits += 1
+	var stack: Array[int] = [0]
+	while not stack.is_empty():
+		var node: int = stack.pop_back()
+		if _bvh_bounds[node].intersects_ray(point, direction) == null:
+			continue
+		var count: int = _bvh_count[node]
+		if count > 0:
+			var start: int = _bvh_start[node]
+			for offset in range(count):
+				var index: int = _bvh_tris[start + offset] * 3
+				var hit: Variant = Geometry3D.ray_intersects_triangle(
+					point,
+					direction,
+					_cached_faces[index],
+					_cached_faces[index + 1],
+					_cached_faces[index + 2]
+				)
+				if hit != null:
+					hits += 1
+		else:
+			stack.append(_bvh_left[node])
+			stack.append(_bvh_right[node])
 	return hits % 2 == 1
 
 func _closest_point_on_faces(point: Vector3) -> Vector3:
 	var best: Vector3 = point
 	var best_distance: float = INF
-	for index in range(0, _cached_faces.size() - 2, 3):
-		var candidate: Vector3 = _closest_point_on_triangle(
-			point,
-			_cached_faces[index],
-			_cached_faces[index + 1],
-			_cached_faces[index + 2]
-		)
-		var distance: float = point.distance_squared_to(candidate)
-		if distance < best_distance:
-			best_distance = distance
-			best = candidate
+	var stack: Array[int] = [0]
+	while not stack.is_empty():
+		var node: int = stack.pop_back()
+		var node_distance: float = _aabb_distance_squared(point, _bvh_bounds[node])
+		if node_distance >= best_distance:
+			continue
+		var count: int = _bvh_count[node]
+		if count > 0:
+			var start: int = _bvh_start[node]
+			for offset in range(count):
+				var index: int = _bvh_tris[start + offset] * 3
+				var candidate: Vector3 = _closest_point_on_triangle(
+					point,
+					_cached_faces[index],
+					_cached_faces[index + 1],
+					_cached_faces[index + 2]
+				)
+				var distance: float = point.distance_squared_to(candidate)
+				if distance < best_distance:
+					best_distance = distance
+					best = candidate
+		else:
+			var left: int = _bvh_left[node]
+			var right: int = _bvh_right[node]
+			var left_distance: float = _aabb_distance_squared(point, _bvh_bounds[left])
+			var right_distance: float = _aabb_distance_squared(point, _bvh_bounds[right])
+			if left_distance < right_distance:
+				stack.append(right)
+				stack.append(left)
+			else:
+				stack.append(left)
+				stack.append(right)
 	return best
+
+func _aabb_distance_squared(point: Vector3, bounds: AABB) -> float:
+	var closest: Vector3 = point.clamp(bounds.position, bounds.end)
+	return point.distance_squared_to(closest)
 
 static func _closest_point_on_triangle(point: Vector3, a: Vector3, b: Vector3, c: Vector3) -> Vector3:
 	var ab: Vector3 = b - a
