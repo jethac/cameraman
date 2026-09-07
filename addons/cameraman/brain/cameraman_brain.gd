@@ -59,6 +59,7 @@ var _cut_next_transition: bool = false
 
 func _init() -> void:
 	default_blend = CameramanBlendDefinition.new()
+	process_priority = 1000
 
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
@@ -68,7 +69,6 @@ func _enter_tree() -> void:
 func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
-	process_priority = 1000
 
 func _exit_tree() -> void:
 	if Engine.is_editor_hint():
