@@ -1,8 +1,8 @@
 @tool
 class_name CameramanConfiner3D
 ## FINALIZE-stage extension that constrains camera position inside a 3D volume.
-## Concave shapes must be closed, non-self-intersecting meshes; open meshes have no
-## interior and are treated as unconfined.
+## Concave shapes must be closed, non-self-intersecting meshes; open meshes are
+## detected, warned about, and treated as unconfined.
 extends CameramanExtension
 
 ## NodePath to the 3D collision volume containing the camera.
@@ -24,6 +24,8 @@ var _bvh_start: PackedInt32Array = PackedInt32Array()
 var _bvh_count: PackedInt32Array = PackedInt32Array()
 var _bvh_tris: PackedInt32Array = PackedInt32Array()
 var _bvh_sort_axis: int = 0
+var _cached_invalid: bool = false
+var _warned_shape: Shape3D
 
 func post_pipeline_stage_callback(
 	camera: Node,
@@ -74,6 +76,8 @@ func invalidate_cache() -> void:
 	_bvh_count = PackedInt32Array()
 	_bvh_tris = PackedInt32Array()
 	_hull_epsilon = 0.0
+	_cached_invalid = false
+	_warned_shape = null
 
 func _exit_tree() -> void:
 	_disconnect_shape()
@@ -131,14 +135,32 @@ func _closest_point_inside(shape: Shape3D, point: Vector3) -> Vector3:
 	return result
 
 func _ensure_faces(shape: Shape3D) -> void:
-	if _cached_shape == shape and not _cached_faces.is_empty():
+	if _cached_shape == shape and (_cached_invalid or not _cached_faces.is_empty()):
 		return
+	if _cached_shape != shape:
+		_cached_invalid = false
+		_warned_shape = null
 	_cached_shape = shape
 	_cached_faces = PackedVector3Array()
 	_cached_planes = []
 	_hull_epsilon = 0.0
 	if shape is ConcavePolygonShape3D:
 		_cached_faces = (shape as ConcavePolygonShape3D).get_faces()
+		if not _is_closed_mesh(_cached_faces):
+			_cached_faces = PackedVector3Array()
+			_cached_invalid = true
+			if _warned_shape != shape:
+				var owner_path: String = (
+					str(get_path()) if is_inside_tree() else "<unparented>"
+				)
+				var warning: String = (
+					"%s: concave confiner mesh is not closed " % owner_path
+				)
+				warning += "(every edge must be shared by exactly two triangles); "
+				warning += "confinement disabled."
+				push_warning(warning)
+				_warned_shape = shape
+			return
 	else:
 		var convex: ConvexPolygonShape3D = shape as ConvexPolygonShape3D
 		if convex.points.size() < 4:
@@ -146,6 +168,53 @@ func _ensure_faces(shape: Shape3D) -> void:
 		_build_hull(convex.points)
 	if not _cached_faces.is_empty():
 		_build_bvh()
+
+static func _is_closed_mesh(faces: PackedVector3Array) -> bool:
+	if faces.is_empty() or faces.size() % 3 != 0:
+		return false
+	var edges: Dictionary = {}
+	for index in range(0, faces.size(), 3):
+		var a: Vector3 = faces[index]
+		var b: Vector3 = faces[index + 1]
+		var c: Vector3 = faces[index + 2]
+		if (b - a).cross(c - a).length_squared() == 0.0:
+			continue
+		for edge in [
+			_mesh_edge_key(a, b),
+			_mesh_edge_key(b, c),
+			_mesh_edge_key(c, a)
+		]:
+			edges[edge] = int(edges.get(edge, 0)) + 1
+	if edges.is_empty():
+		return false
+	for count in edges.values():
+		if count != 2:
+			return false
+	return true
+
+static func _mesh_edge_key(a: Vector3, b: Vector3) -> String:
+	var first: Vector3 = _canonical_mesh_vertex(a)
+	var second: Vector3 = _canonical_mesh_vertex(b)
+	if _vector_less(second, first):
+		var swap: Vector3 = first
+		first = second
+		second = swap
+	return "%s|%s" % [first, second]
+
+static func _canonical_mesh_vertex(point: Vector3) -> Vector3:
+	var snapped: Vector3 = point.snapped(Vector3.ONE * 1e-6)
+	return Vector3(
+		0.0 if is_zero_approx(snapped.x) else snapped.x,
+		0.0 if is_zero_approx(snapped.y) else snapped.y,
+		0.0 if is_zero_approx(snapped.z) else snapped.z
+	)
+
+static func _vector_less(a: Vector3, b: Vector3) -> bool:
+	if a.x != b.x:
+		return a.x < b.x
+	if a.y != b.y:
+		return a.y < b.y
+	return a.z < b.z
 
 func _build_hull(points: PackedVector3Array) -> void:
 	var unique: Array[Vector3] = []
