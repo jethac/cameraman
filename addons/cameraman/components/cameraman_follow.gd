@@ -33,6 +33,9 @@ var _assigned_captured: bool = false
 func stage() -> CameramanCore.Stage:
 	return CameramanCore.Stage.BODY
 
+func rebases_on_target_warp() -> bool:
+	return true
+
 func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	if _assigned_target != follow_target:
 		_assigned_target = follow_target

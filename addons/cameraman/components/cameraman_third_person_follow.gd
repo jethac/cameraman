@@ -25,6 +25,9 @@ func _init() -> void:
 func stage() -> CameramanCore.Stage:
 	return CameramanCore.Stage.BODY
 
+func rebases_on_target_warp() -> bool:
+	return true
+
 func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	var target: Node3D = follow_target
 	if target == null:
@@ -233,21 +236,23 @@ func _cast_shape(
 			return safe
 		if not all_ignored:
 			return safe
-	return last_safe
+	return 1.0
 
 func _get_collision_exclusions() -> Array[RID]:
 	var result: Array[RID] = []
 	var target: Node3D = follow_target
-	if target == null:
-		return result
-	var collision_target: CollisionObject3D = target as CollisionObject3D
-	var ancestor: Node = target.get_parent()
-	while collision_target == null and ancestor != null:
-		collision_target = ancestor as CollisionObject3D
-		ancestor = ancestor.get_parent()
-	if collision_target != null:
-		_add_collision_exclusion(result, collision_target)
-	_add_collision_descendants(target, result)
+	if target != null:
+		var collision_target: CollisionObject3D = target as CollisionObject3D
+		var ancestor: Node = target.get_parent()
+		while collision_target == null and ancestor != null:
+			collision_target = ancestor as CollisionObject3D
+			ancestor = ancestor.get_parent()
+		if collision_target != null:
+			_add_collision_exclusion(result, collision_target)
+		_add_collision_descendants(target, result)
+	if avoid_obstacles.ignore_group != &"" and is_inside_tree():
+		for node in get_tree().get_nodes_in_group(avoid_obstacles.ignore_group):
+			_add_collision_exclusion(result, node)
 	return result
 
 func _add_collision_descendants(node: Node, exclusions: Array[RID]) -> void:
@@ -269,15 +274,13 @@ func _intersect_ray_ignoring_groups(
 	exclusions: Array[RID]
 ) -> Dictionary:
 	var filtered_exclusions: Array[RID] = exclusions.duplicate()
-	var last_hit: Dictionary = {}
 	for _index in 16:
 		query.exclude = filtered_exclusions
 		var hit: Dictionary = space.intersect_ray(query)
 		if hit.is_empty() or not _is_ignored_group(hit.get("collider") as Object):
 			return hit
-		last_hit = hit
 		_add_collision_exclusion(filtered_exclusions, hit.get("collider") as Object)
-	return last_hit
+	return {}
 
 func _is_ignored_group(collider: Object) -> bool:
 	if collider == null or not collider is Node:

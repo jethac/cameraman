@@ -41,6 +41,10 @@ func is_valid() -> bool:
 func body_applies_after_aim() -> bool:
 	return false
 
+## Returns true when this component persists a target-relative camera position that must shift with target warps.
+func rebases_on_target_warp() -> bool:
+	return false
+
 func pre_pipeline_mutate_camera_state(
 	_state: CameramanCameraState,
 	_delta: float

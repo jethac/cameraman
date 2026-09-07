@@ -116,6 +116,37 @@ func test_third_person_rebases_camera_when_target_warps() -> void:
 		Vector3.ONE * 0.5
 	)
 
+func test_spline_dolly_does_not_rebase_camera_node_on_target_warp() -> void:
+	var root: Node3D = Node3D.new()
+	var output: Camera3D = Camera3D.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.MANUAL
+	var target: Node3D = Node3D.new()
+	var path: Path3D = Path3D.new()
+	var curve: Curve3D = Curve3D.new()
+	curve.add_point(Vector3.ZERO)
+	curve.add_point(Vector3(0.0, 0.0, -10.0))
+	path.curve = curve
+	var camera: CameramanCamera = CameramanCamera.new()
+	camera.set_follow(target)
+	var dolly: CameramanSplineDolly = CameramanSplineDolly.new()
+	dolly.spline = path
+	dolly.position_damping = Vector3.ONE
+	camera.add_child(dolly)
+	output.add_child(brain)
+	root.add_child(target)
+	root.add_child(path)
+	root.add_child(output)
+	root.add_child(camera)
+	add_child_autofree(root)
+	for _index in 6:
+		brain.manual_update(0.1)
+	var before: Vector3 = camera.global_position
+	var warp: Vector3 = Vector3(100.0, 0.0, 0.0)
+	target.position += warp
+	CameramanCore.notify_target_warped(target, warp)
+	assert_almost_eq(camera.global_position, before, Vector3.ONE * 0.001)
+
 func test_third_person_rig_follows_target_rotation() -> void:
 	var root: Node = Node.new()
 	var target: Node3D = Node3D.new()
@@ -255,6 +286,55 @@ func test_third_person_follow_ignores_only_ignored_bodies() -> void:
 	)
 	assert_almost_eq(ray_fraction, 1.0, 0.001)
 	assert_almost_eq(sphere_fraction, 1.0, 0.001)
+
+func test_third_person_pre_excludes_many_ignored_sphere_obstacles() -> void:
+	var root: Node3D = Node3D.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	var follow: CameramanThirdPersonFollow = CameramanThirdPersonFollow.new()
+	follow.avoid_obstacles.enabled = true
+	follow.avoid_obstacles.ignore_group = &"ignored_obstacle"
+	follow.avoid_obstacles.camera_radius = 0.3
+	camera.add_child(follow)
+	for index in 10:
+		_add_test_obstacle(root, 0.5 + float(index) * 0.5, true)
+	root.add_child(camera)
+	add_child_autofree(root)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var exclusions: Array[RID] = follow._get_collision_exclusions()
+	var sphere: SphereShape3D = SphereShape3D.new()
+	sphere.radius = 0.3
+	var fraction: float = follow._cast_shape(
+		camera,
+		sphere,
+		Vector3.ZERO,
+		Vector3(0.0, 0.0, 8.0),
+		exclusions
+	)
+	assert_almost_eq(fraction, 1.0, 0.001)
+
+func test_third_person_pre_excludes_many_ignored_ray_obstacles() -> void:
+	var root: Node3D = Node3D.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	var follow: CameramanThirdPersonFollow = CameramanThirdPersonFollow.new()
+	follow.avoid_obstacles.enabled = true
+	follow.avoid_obstacles.ignore_group = &"ignored_obstacle"
+	follow.avoid_obstacles.camera_radius = 0.0
+	camera.add_child(follow)
+	for index in 20:
+		_add_test_obstacle(root, 0.5 + float(index) * 0.5, true)
+	root.add_child(camera)
+	add_child_autofree(root)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var exclusions: Array[RID] = follow._get_collision_exclusions()
+	var fraction: float = follow._cast_ray_fraction(
+		camera,
+		Vector3.ZERO,
+		Vector3(0.0, 0.0, 12.0),
+		exclusions
+	)
+	assert_almost_eq(fraction, 1.0, 0.001)
 
 func _add_test_obstacle(root: Node3D, z: float, ignored: bool) -> StaticBody3D:
 	var body: StaticBody3D = StaticBody3D.new()

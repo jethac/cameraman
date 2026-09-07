@@ -65,6 +65,9 @@ func _init() -> void:
 func stage() -> CameramanCore.Stage:
 	return CameramanCore.Stage.BODY
 
+func rebases_on_target_warp() -> bool:
+	return true
+
 func mutate_camera_state(state: CameramanCameraState, delta: float) -> void:
 	var target: Node3D = follow_target
 	if _assigned_target != target:

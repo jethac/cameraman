@@ -250,7 +250,9 @@ func _create_dolly() -> void:
 	path.curve = curve
 	var camera: CameramanCamera = CameramanCamera.new()
 	camera.name = "DollyCamera"
-	_add_component(camera, CameramanSplineDolly.new(), "SplineDolly")
+	var dolly: CameramanSplineDolly = CameramanSplineDolly.new()
+	dolly.spline = path
+	_add_component(camera, dolly, "SplineDolly")
 	_commit_nodes("Create Dolly", parent, [path, camera])
 
 func _create_2d_camera() -> void:

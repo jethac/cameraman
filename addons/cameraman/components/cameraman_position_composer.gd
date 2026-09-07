@@ -36,6 +36,9 @@ func _init() -> void:
 func stage() -> CameramanCore.Stage:
 	return CameramanCore.Stage.BODY
 
+func rebases_on_target_warp() -> bool:
+	return true
+
 ## Returns true so position correction can run after AIM components.
 func body_applies_after_aim() -> bool:
 	return true
