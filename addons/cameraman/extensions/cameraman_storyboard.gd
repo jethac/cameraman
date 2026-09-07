@@ -85,6 +85,7 @@ func _teardown_render_nodes() -> void:
 		_world_quad.free()
 		_world_quad = null
 	_world_material = null
+	_active_mode = -1
 
 func _exit_tree() -> void:
 	_teardown_render_nodes()
