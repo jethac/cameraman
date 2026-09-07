@@ -110,3 +110,24 @@ func test_storyboard_drops_view_when_brain_leaves() -> void:
 	assert_eq(views.size(), 1)
 	assert_eq(views[0].brain, brain_a)
 	assert_false(is_instance_valid(brain_b_quad))
+
+func test_storyboard_teardown_ignores_freed_output_viewport() -> void:
+	var fixture: Dictionary = _make_fixture(CameramanStoryboard.RenderMode.WORLD_SPACE)
+	_update_fixture(fixture)
+	var storyboard: CameramanStoryboard = fixture["storyboard"]
+	(fixture["viewport_b"] as SubViewport).free()
+	storyboard.free()
+	assert_false(is_instance_valid(storyboard))
+
+func test_storyboard_keeps_live_view_after_output_viewport_frees() -> void:
+	var fixture: Dictionary = _make_fixture(CameramanStoryboard.RenderMode.WORLD_SPACE)
+	_update_fixture(fixture)
+	var storyboard: CameramanStoryboard = fixture["storyboard"]
+	var brain_a: CameramanBrain = fixture["brain_a"]
+	(fixture["viewport_b"] as SubViewport).free()
+	storyboard._process(0.1)
+	var views: Array = storyboard.get_output_views()
+	assert_eq(views.size(), 1)
+	assert_eq(views[0].brain, brain_a)
+	assert_true(is_instance_valid(views[0].world_quad))
+	assert_eq(views[0].world_quad.get_viewport(), fixture["viewport_a"])
