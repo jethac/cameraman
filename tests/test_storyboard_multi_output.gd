@@ -84,6 +84,21 @@ func test_storyboard_camera_space_binds_each_output_viewport() -> void:
 		)
 		assert_eq(view.layer.custom_viewport, expected)
 
+func test_storyboard_recreates_screen_nodes_without_leaking_layer() -> void:
+	var fixture: Dictionary = _make_fixture(
+		CameramanStoryboard.RenderMode.SCREEN_SPACE_CAMERA
+	)
+	(fixture["viewport_b"] as SubViewport).free()
+	(fixture["brain_a"] as CameramanBrain).manual_update(0.1)
+	var storyboard: CameramanStoryboard = fixture["storyboard"]
+	storyboard._process(0.1)
+	var view: CameramanStoryboard.OutputView = storyboard.get_output_views()[0]
+	view.texture_rect.free()
+	storyboard._process(0.1)
+	assert_eq(storyboard.get_child_count(), 1)
+	assert_true(is_instance_valid(view.layer))
+	assert_true(is_instance_valid(view.texture_rect))
+
 func test_storyboard_overlay_uses_single_view() -> void:
 	var fixture: Dictionary = _make_fixture(
 		CameramanStoryboard.RenderMode.SCREEN_SPACE_OVERLAY
