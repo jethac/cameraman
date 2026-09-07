@@ -44,11 +44,25 @@ var _frustum_instance: MeshInstance3D
 func _init() -> void:
 	default_blend = CameramanBlendDefinition.new()
 
-func _ready() -> void:
-	process_priority = 1000
+func _enter_tree() -> void:
 	CameramanCore.register_brain(self)
 
+func _ready() -> void:
+	process_priority = 1000
+
 func _exit_tree() -> void:
+	if _live_camera != null:
+		var still_live: bool = false
+		for other_value in CameramanCore.brains:
+			var other: Node = other_value as Node
+			if other == self or not is_instance_valid(other):
+				continue
+			if CameramanCore.is_live_in_brain(other, _live_camera):
+				still_live = true
+				break
+		if not still_live:
+			CameramanCore.set_camera_live(_live_camera, false)
+		_live_camera = null
 	CameramanCore.unregister_brain(self)
 
 func _process(delta: float) -> void:

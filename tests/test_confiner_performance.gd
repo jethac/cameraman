@@ -1,5 +1,23 @@
 extends GutTest
 
+func test_confiner_3d_open_concave_mesh_is_unconfined() -> void:
+	var camera: Node3D = Node3D.new()
+	add_child_autofree(camera)
+	var shape: CollisionShape3D = CollisionShape3D.new()
+	var concave: ConcavePolygonShape3D = ConcavePolygonShape3D.new()
+	concave.set_faces(PackedVector3Array([
+		Vector3(-1.0, 0.0, -1.0), Vector3(1.0, 0.0, -1.0), Vector3(1.0, 0.0, 1.0),
+		Vector3(-1.0, 0.0, -1.0), Vector3(1.0, 0.0, 1.0), Vector3(-1.0, 0.0, 1.0)
+	]))
+	shape.shape = concave
+	camera.add_child(shape)
+	var extension: CameramanConfiner3D = CameramanConfiner3D.new()
+	autofree(extension)
+	var state: CameramanCameraState = CameramanCameraState.create_default()
+	state.raw_position = Vector3(0.0, 2.0, 0.0)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, state, 0.1)
+	assert_almost_eq(state.get_final_position(), state.raw_position, Vector3.ONE * 0.001)
+
 func test_confiner_3d_concave_sphere_uses_bvh_for_clamping() -> void:
 	var camera: Node3D = Node3D.new()
 	add_child_autofree(camera)
