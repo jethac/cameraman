@@ -158,6 +158,19 @@ func _ensure_faces(shape: Shape3D) -> void:
 		if convex.points.size() < 4:
 			return
 		_build_hull(convex.points)
+		if _cached_faces.is_empty():
+			_cached_invalid = true
+			if _warned_shape != shape:
+				var owner_path: String = (
+					str(get_path()) if is_inside_tree() else "<unparented>"
+				)
+				push_warning(
+					"%s: convex confiner points are coplanar or thinner than 1e-5 "
+					% owner_path
+					+ "of their extent; confinement disabled."
+				)
+				_warned_shape = shape
+			return
 	if not _cached_faces.is_empty():
 		_build_bvh()
 

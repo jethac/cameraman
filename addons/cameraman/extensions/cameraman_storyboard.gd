@@ -144,7 +144,7 @@ func _teardown_render_nodes() -> void:
 	_active_mode = -1
 
 func _teardown_view(view: OutputView) -> void:
-	if view.layer != null:
+	if view.layer != null and is_instance_valid(view.layer):
 		var root_viewport: Viewport = get_viewport()
 		if root_viewport != null and view.layer.get_viewport() != root_viewport:
 			view.layer.custom_viewport = root_viewport
@@ -152,13 +152,13 @@ func _teardown_view(view: OutputView) -> void:
 		if layer_parent != null:
 			layer_parent.remove_child(view.layer)
 		view.layer.free()
-		view.layer = null
-	if view.world_quad != null:
+	if view.world_quad != null and is_instance_valid(view.world_quad):
 		var quad_parent: Node = view.world_quad.get_parent()
 		if quad_parent != null:
 			quad_parent.remove_child(view.world_quad)
 		view.world_quad.free()
-		view.world_quad = null
+	view.layer = null
+	view.world_quad = null
 	view.screen_container = null
 	view.texture_rect = null
 	view.world_material = null
@@ -193,7 +193,19 @@ func _create_world_space(view: OutputView) -> void:
 	add_child(view.world_quad)
 
 func _update_screen_space(view: OutputView, brain: Node, visible_now: bool) -> void:
-	if view.texture_rect == null or view.screen_container == null:
+	if (
+		view.layer == null
+		or not is_instance_valid(view.layer)
+		or view.screen_container == null
+		or not is_instance_valid(view.screen_container)
+		or view.texture_rect == null
+		or not is_instance_valid(view.texture_rect)
+	):
+		view.layer = null
+		view.screen_container = null
+		view.texture_rect = null
+		_create_screen_space(view)
+	if view.texture_rect == null or not is_instance_valid(view.texture_rect):
 		return
 	var output_viewport: Viewport
 	if brain != null and brain.has_method("get_output_viewport"):
@@ -234,8 +246,10 @@ func _update_world_space(
 	brain: Node,
 	visible_now: bool
 ) -> void:
-	if view.world_quad == null:
-		return
+	if view.world_quad == null or not is_instance_valid(view.world_quad):
+		view.world_quad = null
+		view.world_material = null
+		_create_world_space(view)
 	var layers: int = world_render_layers
 	if brain != null and "storyboard_render_layers" in brain:
 		var brain_layers: int = int(brain.get("storyboard_render_layers"))

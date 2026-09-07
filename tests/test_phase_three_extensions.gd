@@ -194,6 +194,31 @@ func test_confiner_3d_convex_hull_handles_coplanar_box_points() -> void:
 		Vector3.ONE * 0.001
 	)
 
+func test_confiner_3d_disables_flat_convex_hull() -> void:
+	var camera: Node3D = Node3D.new()
+	add_child_autofree(camera)
+	var shape: CollisionShape3D = CollisionShape3D.new()
+	var convex: ConvexPolygonShape3D = ConvexPolygonShape3D.new()
+	convex.points = PackedVector3Array([
+		Vector3(-1.0, 0.0, -1.0),
+		Vector3(1.0, 0.0, -1.0),
+		Vector3(-1.0, 0.0, 1.0),
+		Vector3(1.0, 0.0, 1.0),
+		Vector3(-0.5, 0.0, -0.5),
+		Vector3(0.5, 0.0, -0.5),
+		Vector3(-0.5, 0.0, 0.5),
+		Vector3(0.5, 0.0, 0.5)
+	])
+	shape.shape = convex
+	camera.add_child(shape)
+	var extension: CameramanConfiner3D = CameramanConfiner3D.new()
+	autofree(extension)
+	var state: CameramanCameraState = CameramanCameraState.create_default()
+	state.raw_position = Vector3(3.0, 0.0, 0.0)
+	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, state, 0.1)
+	assert_true(extension._cached_invalid)
+	assert_almost_eq(state.get_final_position(), state.raw_position, Vector3.ONE * 0.001)
+
 func test_confiner_3d_incremental_hull_handles_sphere_samples() -> void:
 	var camera: Node3D = Node3D.new()
 	add_child_autofree(camera)
