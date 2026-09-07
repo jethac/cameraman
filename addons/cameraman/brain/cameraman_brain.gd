@@ -34,6 +34,9 @@ enum BlendUpdateMethod { PROCESS, PHYSICS }
 @export var default_blend: CameramanBlendDefinition
 ## Named source-to-destination rules checked before default_blend.
 @export var custom_blends: CameramanBlenderSettings
+## Overrides the storyboard's world_render_layers for quads rendered to this brain's
+## output; 0 uses the storyboard value.
+@export_flags_3d_render var storyboard_render_layers: int = 0
 
 var active_virtual_camera: CameramanVirtualCameraBase
 var active_blend: CameramanBlend:

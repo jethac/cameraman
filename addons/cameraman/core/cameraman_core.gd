@@ -49,6 +49,24 @@ static func find_brain_for(camera: Node) -> Node:
 			return brain
 	return first_brain
 
+static func find_brains_for(camera: Node) -> Array[Node]:
+	var result: Array[Node] = []
+	for brain_value in brains.duplicate():
+		var brain: Node = brain_value as Node
+		if not is_instance_valid(brain):
+			brains.erase(brain_value)
+			continue
+		var owns_output: bool = false
+		if brain.has_method("get_output_camera"):
+			owns_output = brain.call("get_output_camera") == camera
+		if is_live_in_brain(brain, camera) or owns_output:
+			result.append(brain)
+	if result.is_empty():
+		var fallback: Node = find_brain_for(camera)
+		if fallback != null:
+			result.append(fallback)
+	return result
+
 static func is_live_in_brain(brain: Node, camera: Node) -> bool:
 	if brain == null or camera == null:
 		return false

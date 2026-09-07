@@ -22,7 +22,7 @@ func test_storyboard_world_space_center_y_moves_quad_down() -> void:
 	add_child_autofree(root)
 	brain.manual_update(0.1)
 	storyboard._process(0.1)
-	var quad: MeshInstance3D = storyboard.get_child(0) as MeshInstance3D
+	var quad: MeshInstance3D = storyboard.get_output_views()[0].world_quad
 	var view_basis: Basis = output.global_basis.orthonormalized()
 	var forward_point: Vector3 = output.global_position - view_basis.z * 2.0
 	assert_lt(
@@ -54,7 +54,7 @@ func test_storyboard_world_space_reparents_to_output_viewport_and_frees_quad() -
 	add_child_autofree(root)
 	brain.manual_update(0.1)
 	storyboard._process(0.1)
-	var quad: MeshInstance3D = storyboard._world_quad
+	var quad: MeshInstance3D = storyboard.get_output_views()[0].world_quad
 	assert_eq(quad.get_viewport(), subviewport)
 	storyboard.free()
 	assert_false(is_instance_valid(quad))
