@@ -134,8 +134,24 @@ func _cast_camera_path(
 		sphere.radius = avoid_obstacles.camera_radius
 		hand_fraction = _cast_shape(world_node, sphere, root, hand, exclusions)
 	if hand_fraction <= 0.0:
-		return {"hand": root, "distance": minimum_distance}
-	var effective_hand: Vector3 = root.lerp(hand, maxf(hand_fraction - 0.01, 0.0))
+		var minimum_end: Vector3 = root + rotation * Vector3(0.0, 0.0, minimum_distance)
+		var minimum_fraction: float
+		if avoid_obstacles.camera_radius <= 0.0:
+			minimum_fraction = _cast_ray_fraction(
+				world_node, root, minimum_end, exclusions
+			)
+		else:
+			var minimum_sphere: SphereShape3D = SphereShape3D.new()
+			minimum_sphere.radius = avoid_obstacles.camera_radius
+			minimum_fraction = _cast_shape(
+				world_node, minimum_sphere, root, minimum_end, exclusions
+			)
+		return {"hand": root, "distance": maxf(minimum_distance * minimum_fraction, 0.05)}
+	var effective_hand: Vector3 = (
+		hand
+		if hand_fraction >= 1.0
+		else root.lerp(hand, maxf(hand_fraction - 0.01, 0.0))
+	)
 	var end: Vector3 = effective_hand + rotation * Vector3(0.0, 0.0, distance)
 	var end_fraction: float
 	if avoid_obstacles.camera_radius <= 0.0:
@@ -144,10 +160,9 @@ func _cast_camera_path(
 		var end_sphere: SphereShape3D = SphereShape3D.new()
 		end_sphere.radius = avoid_obstacles.camera_radius
 		end_fraction = _cast_shape(world_node, end_sphere, effective_hand, end, exclusions)
-	return {
-		"hand": effective_hand,
-		"distance": maxf(distance * end_fraction, minimum_distance)
-	}
+	var safe: float = distance * end_fraction
+	var result: float = safe if end_fraction < 1.0 else maxf(safe, minimum_distance)
+	return {"hand": effective_hand, "distance": maxf(result, 0.05)}
 
 func _cast_ray_fraction(
 	world_node: Node3D,

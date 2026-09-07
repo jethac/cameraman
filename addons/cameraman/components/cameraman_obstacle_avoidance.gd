@@ -17,3 +17,9 @@ extends Resource
 @export var minimum_distance_from_target: float = 0.0
 ## Bodies in this group are skipped and do not shorten the camera path.
 @export var ignore_group: StringName
+
+func _set(property: StringName, value: Variant) -> bool:
+	if property == &"ignore_tag_group_name":
+		ignore_group = value
+		return true
+	return false

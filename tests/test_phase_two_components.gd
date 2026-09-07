@@ -134,6 +134,25 @@ func test_third_person_rig_follows_target_rotation() -> void:
 	assert_almost_eq(rig[1], target.global_position + target.global_basis * component.shoulder_offset, Vector3.ONE * 0.001)
 	assert_almost_eq(rig[2], rig[1] + target.global_basis * Vector3.UP, Vector3.ONE * 0.001)
 
+func test_third_person_clear_path_preserves_exact_hand_position() -> void:
+	var root: Node3D = Node3D.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	var follow: CameramanThirdPersonFollow = CameramanThirdPersonFollow.new()
+	follow.avoid_obstacles.enabled = true
+	follow.avoid_obstacles.camera_radius = 0.0
+	camera.add_child(follow)
+	root.add_child(camera)
+	add_child_autofree(root)
+	var hand: Vector3 = Vector3(0.5, 1.5, 0.0)
+	var path: Dictionary = follow._cast_camera_path(
+		camera,
+		Vector3.ZERO,
+		hand,
+		Quaternion.IDENTITY,
+		2.0
+	)
+	assert_almost_eq(path["hand"], hand, Vector3.ONE * 0.001)
+
 func test_third_person_follow_ignores_follow_target_collision() -> void:
 	var root: Node3D = Node3D.new()
 	var target: CharacterBody3D = CharacterBody3D.new()
@@ -287,6 +306,34 @@ func test_third_person_follow_respects_minimum_obstacle_distance() -> void:
 	camera.update_state(Vector3.UP, 0.1)
 	var rig: Array[Vector3] = follow.get_rig_positions()
 	assert_gte(camera.get_state().raw_position.distance_to(rig[2]), 0.6)
+
+func test_third_person_minimum_distance_stays_before_wall() -> void:
+	var root: Node3D = Node3D.new()
+	var target: Node3D = Node3D.new()
+	var wall: StaticBody3D = StaticBody3D.new()
+	wall.position.z = 0.5
+	var wall_shape: CollisionShape3D = CollisionShape3D.new()
+	var wall_box: BoxShape3D = BoxShape3D.new()
+	wall_box.size = Vector3(4.0, 4.0, 0.1)
+	wall_shape.shape = wall_box
+	wall.add_child(wall_shape)
+	var camera: CameramanCamera = CameramanCamera.new()
+	var follow: CameramanThirdPersonFollow = CameramanThirdPersonFollow.new()
+	camera.set_follow(target)
+	follow.camera_distance = 2.0
+	follow.avoid_obstacles.enabled = true
+	follow.avoid_obstacles.camera_radius = 0.2
+	follow.avoid_obstacles.minimum_distance_from_target = 2.0
+	camera.add_child(follow)
+	root.add_child(target)
+	root.add_child(wall)
+	root.add_child(camera)
+	add_child_autofree(root)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	camera.update_state(Vector3.UP, 0.1)
+	var camera_position: Vector3 = camera.get_state().raw_position
+	assert_lte(camera_position.z, 0.7)
 
 func test_third_person_follow_slides_shoulder_around_obstacle() -> void:
 	var root: Node3D = Node3D.new()

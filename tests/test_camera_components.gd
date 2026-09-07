@@ -65,6 +65,27 @@ func test_camera_without_components_preserves_transform() -> void:
 	camera.update_state(Vector3.UP, 0.1)
 	assert_almost_eq(camera.get_state().raw_position, Vector3(2.0, 4.0, 6.0), Vector3.ONE * 0.001)
 
+func test_look_at_only_camera_does_not_rebase_on_target_warp() -> void:
+	var root: Node = Node.new()
+	var target: Node3D = Node3D.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	camera.position = Vector3(1.0, 2.0, 3.0)
+	camera.set_look_at(target)
+	camera.use_separate_look_at = true
+	camera.look_at_target = target
+	camera.add_child(CameramanHardLookAt.new())
+	root.add_child(target)
+	root.add_child(camera)
+	add_child_autofree(root)
+	var before: Vector3 = camera.global_position
+	camera.on_target_object_warped(target, Vector3(10.0, 0.0, 0.0))
+	assert_almost_eq(camera.global_position, before, Vector3.ONE * 0.001)
+
+func test_obstacle_avoidance_accepts_legacy_ignore_group_alias() -> void:
+	var resource: CameramanObstacleAvoidance = CameramanObstacleAvoidance.new()
+	resource.set("ignore_tag_group_name", &"foo")
+	assert_eq(resource.ignore_group, &"foo")
+
 func test_post_pipeline_callbacks_fire_once_per_stage() -> void:
 	var root: Node = Node.new()
 	var camera: CameramanCamera = CameramanCamera.new()

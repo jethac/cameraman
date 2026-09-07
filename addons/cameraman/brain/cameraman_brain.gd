@@ -110,6 +110,9 @@ func _physics_process(delta: float) -> void:
 
 ## Advances one brain frame by delta seconds; only valid with update_method MANUAL.
 func manual_update(delta: float = -1.0) -> void:
+	if update_method != UpdateMethod.MANUAL:
+		push_warning("CameramanBrain.manual_update ignored: update_method is not MANUAL")
+		return
 	var step: float = delta if delta >= 0.0 else get_process_delta_time()
 	_update_frame(step, _frame + 1)
 
@@ -118,8 +121,14 @@ func cut_next_transition() -> void:
 	_cut_next_transition = true
 
 ## Converts a target warp notification into a one-shot cut request.
-func on_target_warped(_target: Node3D) -> void:
-	cut_next_transition()
+func on_target_warped(target: Node3D) -> void:
+	for camera_value in CameramanCore.get_registry().get_cameras():
+		var camera: CameramanVirtualCameraBase = camera_value as CameramanVirtualCameraBase
+		if camera == null or not CameramanCore.is_live_in_brain(self, camera):
+			continue
+		if camera.get_follow() == target or camera.get_look_at() == target:
+			cut_next_transition()
+			return
 
 func is_live(camera: CameramanVirtualCameraBase) -> bool:
 	return _blend_manager.is_live(camera)

@@ -125,7 +125,16 @@ func on_transition_from_camera(
 
 ## Forwards target displacement to components and extensions so damping can rebase.
 func on_target_object_warped(target: Node3D, position_delta: Vector3) -> void:
-	if target == get_follow() or target == get_look_at():
+	var has_body_component: bool = false
+	for component in _get_components():
+		if component.stage() == CameramanCore.Stage.BODY:
+			has_body_component = true
+			break
+	if (
+		target == get_follow()
+		and not self is CameramanCameraManagerBase
+		and has_body_component
+	):
 		global_position += position_delta
 	for extension in _extensions:
 		extension.on_target_object_warped(self, target, position_delta)

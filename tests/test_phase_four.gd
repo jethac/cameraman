@@ -67,6 +67,26 @@ func test_manager_and_child_receive_one_warp_dispatch_each() -> void:
 	assert_eq(manager_extension.warp_count, 1)
 	assert_eq(child_extension.warp_count, 1)
 
+func test_manager_warp_does_not_double_rebase_following_child() -> void:
+	var root: Node3D = Node3D.new()
+	var target: Node3D = Node3D.new()
+	var manager: CameramanClearShot = CameramanClearShot.new()
+	var child: CameramanCamera = CameramanCamera.new()
+	var follow: CameramanFollow = CameramanFollow.new()
+	manager.set_follow(target)
+	child.set_follow(target)
+	child.add_child(follow)
+	manager.add_child(child)
+	root.add_child(target)
+	root.add_child(manager)
+	add_child_autofree(root)
+	var manager_before: Vector3 = manager.global_position
+	var child_before: Vector3 = child.global_position
+	var warp: Vector3 = Vector3(10.0, 0.0, 0.0)
+	CameramanCore.notify_target_warped(target, warp)
+	assert_almost_eq(manager.global_position, manager_before, Vector3.ONE * 0.001)
+	assert_almost_eq(child.global_position, child_before + warp, Vector3.ONE * 0.001)
+
 func test_manager_does_not_reparent_child_world_state() -> void:
 	var manager: CameramanClearShot = CameramanClearShot.new()
 	var camera: CameramanCamera = CameramanCamera.new()

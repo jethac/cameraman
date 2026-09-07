@@ -94,6 +94,7 @@ func test_target_warp_cuts_next_brain_transition() -> void:
 	add_child_autofree(root)
 	var target := Node3D.new()
 	root.add_child(target)
+	first.set_follow(target)
 	brain.manual_update(0.1)
 	assert_eq(brain.active_virtual_camera, first)
 	CameramanCore.notify_target_warped(target, Vector3(100.0, 0.0, 0.0))
@@ -101,6 +102,72 @@ func test_target_warp_cuts_next_brain_transition() -> void:
 	brain.manual_update(0.1)
 	assert_false(brain.is_blending)
 	assert_almost_eq(brain.current_camera_state.get_final_position(), second.position, Vector3.ONE * 0.001)
+
+func test_target_warp_only_cuts_brain_tracking_that_target() -> void:
+	var root: Node3D = Node3D.new()
+	var output_a: Camera3D = Camera3D.new()
+	var output_b: Camera3D = Camera3D.new()
+	var brain_a: CameramanBrain = CameramanBrain.new()
+	var brain_b: CameramanBrain = CameramanBrain.new()
+	brain_a.update_method = CameramanBrain.UpdateMethod.MANUAL
+	brain_b.update_method = CameramanBrain.UpdateMethod.MANUAL
+	brain_a.channel_mask = 1
+	brain_b.channel_mask = 2
+	brain_a.default_blend.style = CameramanBlendDefinition.Style.LINEAR
+	brain_b.default_blend.style = CameramanBlendDefinition.Style.LINEAR
+	brain_a.default_blend.time = 2.0
+	brain_b.default_blend.time = 2.0
+	var target_a: Node3D = Node3D.new()
+	var target_b: Node3D = Node3D.new()
+	var first_a: CameramanCamera = CameramanCamera.new()
+	var second_a: CameramanCamera = CameramanCamera.new()
+	var first_b: CameramanCamera = CameramanCamera.new()
+	var second_b: CameramanCamera = CameramanCamera.new()
+	first_a.set_follow(target_a)
+	first_b.set_follow(target_b)
+	first_a.priority_enabled = true
+	second_a.priority_enabled = true
+	first_b.priority_enabled = true
+	second_b.priority_enabled = true
+	first_a.priority = 2
+	second_a.priority = 1
+	first_b.priority = 2
+	second_b.priority = 1
+	first_a.output_channel = 1
+	second_a.output_channel = 1
+	first_b.output_channel = 2
+	second_b.output_channel = 2
+	output_a.add_child(brain_a)
+	output_b.add_child(brain_b)
+	root.add_child(target_a)
+	root.add_child(target_b)
+	root.add_child(output_a)
+	root.add_child(output_b)
+	root.add_child(first_a)
+	root.add_child(second_a)
+	root.add_child(first_b)
+	root.add_child(second_b)
+	add_child_autofree(root)
+	brain_a.manual_update(0.1)
+	brain_b.manual_update(0.1)
+	target_a.position += Vector3(10.0, 0.0, 0.0)
+	CameramanCore.notify_target_warped(target_a, Vector3(10.0, 0.0, 0.0))
+	second_a.priority = 3
+	second_b.priority = 3
+	brain_a.manual_update(0.1)
+	brain_b.manual_update(0.1)
+	assert_false(brain_a.is_blending)
+	assert_true(brain_b.is_blending)
+
+func test_manual_update_ignores_non_manual_brains() -> void:
+	var root: Node = Node.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.SMART
+	root.add_child(brain)
+	add_child_autofree(root)
+	brain.manual_update(0.1)
+	assert_eq(brain._frame, 0)
+	assert_null(brain.active_virtual_camera)
 
 func test_target_transition_blends_without_warp_notification() -> void:
 	var root: Node = Node.new()
