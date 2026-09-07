@@ -627,6 +627,89 @@ func test_input_controller_applies_mouse_motion_to_discovered_axis() -> void:
 	controller._process(1.0 / 60.0)
 	assert_almost_eq(orbital.horizontal_axis.value, 4.0, 0.001)
 
+func test_input_controller_scans_nested_components_when_enabled() -> void:
+	var root: Node = Node.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	var intermediate: Node3D = Node3D.new()
+	var orbital: CameramanOrbitalFollow = CameramanOrbitalFollow.new()
+	var controller: CameramanInputAxisController = CameramanInputAxisController.new()
+	intermediate.add_child(orbital)
+	camera.add_child(intermediate)
+	camera.add_child(controller)
+	root.add_child(camera)
+	add_child_autofree(root)
+	controller.synchronize_controllers()
+	assert_null(controller.get_controller("horizontal"))
+	controller.scan_recursively = true
+	controller.synchronize_controllers()
+	assert_eq(controller.get_controller("horizontal").owner, orbital)
+
+func test_input_controller_suppresses_mouse_input_while_blending() -> void:
+	var root: Node = Node.new()
+	var output: Camera3D = Camera3D.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.PROCESS
+	brain.default_blend.style = CameramanBlendDefinition.Style.LINEAR
+	brain.default_blend.time = 1.0
+	var first: CameramanCamera = CameramanCamera.new()
+	var second: CameramanCamera = CameramanCamera.new()
+	var orbital: CameramanOrbitalFollow = CameramanOrbitalFollow.new()
+	var controller: CameramanInputAxisController = CameramanInputAxisController.new()
+	first.priority_enabled = true
+	second.priority_enabled = true
+	first.priority = 1
+	second.priority = 0
+	first.add_child(orbital)
+	first.add_child(controller)
+	output.add_child(brain)
+	root.add_child(output)
+	root.add_child(first)
+	root.add_child(second)
+	add_child_autofree(root)
+	controller.synchronize_controllers()
+	var control: CameramanInputAxisControl = controller.get_controller("horizontal")
+	control.mouse_motion_axis = CameramanInputAxisControl.MouseMotionAxis.X
+	control.mouse_gain = 1.0
+	brain._update_frame(0.0, 1)
+	second.priority = 2
+	brain._update_frame(0.0, 2)
+	controller.suppress_input_while_blending = true
+	var motion: InputEventMouseMotion = InputEventMouseMotion.new()
+	motion.relative = Vector2(4.0, 0.0)
+	controller._input(motion)
+	controller._process(1.0 / 60.0)
+	assert_almost_eq(orbital.horizontal_axis.value, 0.0, 0.001)
+	controller.suppress_input_while_blending = false
+	motion.relative = Vector2(4.0, 0.0)
+	controller._input(motion)
+	controller._process(1.0 / 60.0)
+	assert_almost_eq(orbital.horizontal_axis.value, 4.0, 0.001)
+
+func test_input_controller_cancels_stale_delta_input() -> void:
+	var root: Node = Node.new()
+	var camera: CameramanCamera = CameramanCamera.new()
+	var orbital: CameramanOrbitalFollow = CameramanOrbitalFollow.new()
+	var controller: CameramanInputAxisController = CameramanInputAxisController.new()
+	var action: StringName = &"test_cancel_delta_input"
+	if not InputMap.has_action(action):
+		InputMap.add_action(action)
+	orbital.horizontal_axis.range = Vector2(-100.0, 100.0)
+	camera.add_child(orbital)
+	camera.add_child(controller)
+	root.add_child(camera)
+	add_child_autofree(root)
+	controller.synchronize_controllers()
+	var control: CameramanInputAxisControl = controller.get_controller("horizontal")
+	control.input_action_positive = action
+	control.cancel_delta_time = 0.1
+	Input.action_press(action)
+	controller._process(0.5)
+	assert_almost_eq(orbital.horizontal_axis.value, 0.0, 0.001)
+	controller._process(0.016)
+	assert_gt(orbital.horizontal_axis.value, 0.0)
+	Input.action_release(action)
+	InputMap.erase_action(action)
+
 func test_input_controller_preserves_bindings_when_axes_resynchronize() -> void:
 	var root: Node = Node.new()
 	var camera: CameramanCamera = CameramanCamera.new()

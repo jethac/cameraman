@@ -94,19 +94,28 @@ func _process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	_record_target_transforms(false)
-	if update_method == UpdateMethod.PROCESS:
-		_update_frame(delta, Engine.get_process_frames())
-	elif update_method == UpdateMethod.SMART and not _desired_source_is_physics_driven():
+	if _updates_on_clock(false):
 		_update_frame(delta, Engine.get_process_frames())
 
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	_record_target_transforms(true)
-	if update_method == UpdateMethod.PHYSICS:
+	if _updates_on_clock(true):
 		_update_frame(delta, Engine.get_physics_frames())
-	elif update_method == UpdateMethod.SMART and _desired_source_is_physics_driven():
-		_update_frame(delta, Engine.get_physics_frames())
+
+func _updates_on_clock(physics: bool) -> bool:
+	if update_method == UpdateMethod.MANUAL:
+		return false
+	if active_blend != null:
+		return physics == (blend_update_method == BlendUpdateMethod.PHYSICS)
+	if physics:
+		return update_method == UpdateMethod.PHYSICS or (
+			update_method == UpdateMethod.SMART and _desired_source_is_physics_driven()
+		)
+	return update_method == UpdateMethod.PROCESS or (
+		update_method == UpdateMethod.SMART and not _desired_source_is_physics_driven()
+	)
 
 ## Advances one brain frame by delta seconds; only valid with update_method MANUAL.
 func manual_update(delta: float = -1.0) -> void:

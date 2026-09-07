@@ -34,6 +34,13 @@ func _process(delta: float) -> void:
 	var step: float = delta
 	if ignore_time_scale and Engine.time_scale != 0.0:
 		step /= Engine.time_scale
+	var suppress_input: bool = false
+	if suppress_input_while_blending:
+		for brain_value in CameramanCore.find_brains_for(get_parent()):
+			var brain: Node = brain_value as Node
+			if brain != null and bool(brain.get("is_blending")):
+				suppress_input = true
+				break
 	for control in _controls.values():
 		var axis_control: CameramanInputAxisControl = control as CameramanInputAxisControl
 		if axis_control == null or not axis_control.enabled or axis_control.axis == null:
@@ -44,6 +51,12 @@ func _process(delta: float) -> void:
 			mouse_delta = _mouse_motion.x * axis_control.mouse_gain
 		elif axis_control.mouse_motion_axis == CameramanInputAxisControl.MouseMotionAxis.Y:
 			mouse_delta = _mouse_motion.y * axis_control.mouse_gain
+		if suppress_input or (
+			axis_control.cancel_delta_time > 0.0
+			and step > axis_control.cancel_delta_time
+		):
+			input_value = 0.0
+			mouse_delta = 0.0
 		if axis_control.invert:
 			mouse_delta = -mouse_delta
 		if not is_zero_approx(mouse_delta):
@@ -86,8 +99,12 @@ func synchronize_controllers() -> void:
 			preserved[existing.axis_name] = existing
 	var synchronized: Array[CameramanInputAxisControl] = []
 	var next_controls: Dictionary = {}
-	var children: Array[Node] = camera.get_children()
-	for child in children:
+	var candidates: Array[Node] = []
+	if scan_recursively:
+		_collect_descendants(camera, candidates)
+	else:
+		candidates = camera.get_children()
+	for child in candidates:
 		var component: CameramanComponent = child as CameramanComponent
 		if component == null:
 			continue
@@ -107,6 +124,11 @@ func synchronize_controllers() -> void:
 			synchronized.append(control)
 	_controls = next_controls
 	controls = synchronized
+
+func _collect_descendants(parent: Node, result: Array[Node]) -> void:
+	for child in parent.get_children():
+		result.append(child)
+		_collect_descendants(child, result)
 
 ## Returns the control bound to name_value, or null when no binding exists.
 func get_controller(name_value: String) -> CameramanInputAxisControl:

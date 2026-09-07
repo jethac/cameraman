@@ -46,6 +46,35 @@ func test_brain_writes_camera_and_cut_event() -> void:
 	assert_signal_emitted(brain, "camera_cut")
 	assert_almost_eq(output.global_position, camera.position, Vector3.ONE * 0.001)
 
+func test_blend_update_method_selects_transition_clock() -> void:
+	var root: Node = Node.new()
+	var output: Camera3D = Camera3D.new()
+	var brain: CameramanBrain = CameramanBrain.new()
+	brain.update_method = CameramanBrain.UpdateMethod.PROCESS
+	brain.blend_update_method = CameramanBrain.BlendUpdateMethod.PHYSICS
+	brain.default_blend.style = CameramanBlendDefinition.Style.LINEAR
+	brain.default_blend.time = 1.0
+	var first: CameramanCamera = CameramanCamera.new()
+	var second: CameramanCamera = CameramanCamera.new()
+	first.priority_enabled = true
+	second.priority_enabled = true
+	first.priority = 1
+	second.priority = 0
+	output.add_child(brain)
+	root.add_child(output)
+	root.add_child(first)
+	root.add_child(second)
+	add_child_autofree(root)
+	brain._update_frame(0.0, 1)
+	second.priority = 2
+	brain._update_frame(0.0, 2)
+	var before: float = brain.active_blend.time_in_blend
+	for _index in 3:
+		brain._process(0.1)
+	assert_almost_eq(brain.active_blend.time_in_blend, before, 0.001)
+	brain._physics_process(0.1)
+	assert_gt(brain.active_blend.time_in_blend, before)
+
 func test_brain_override_precedes_priority() -> void:
 	var root: Node = Node.new()
 	var brain: CameramanBrain = CameramanBrain.new()
