@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Cameraman is a composable procedural camera system for Godot 4, with virtual cameras, cinematic blending, modular rigs, and a live WebGL demo." />
+    <meta name="theme-color" content="#080b10" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Cameraman — Procedural cameras for Godot 4" />
+    <meta property="og:description" content="Build expressive 2D and 3D camera systems from composable, gameplay-ready parts." />
+    <meta property="og:url" content="https://cameraman.jethachan.net" />
+    <link rel="canonical" href="https://cameraman.jethachan.net" />
+    <link rel="icon" href="/mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <title>Cameraman — Procedural cameras for Godot 4</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Cameraman home">
+        <img src="/mark.svg" width="34" height="34" alt="" />
+        <span>Cameraman</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#features">Features</a>
+        <a href="#pipeline">Pipeline</a>
+        <a href="#demo">Demo</a>
+        <a class="nav-github" href="https://github.com/jethac/cameraman">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top">
+        <div class="hero-glow hero-glow-a"></div>
+        <div class="hero-glow hero-glow-b"></div>
+        <div class="hero-grid"></div>
+        <div class="hero-copy">
+          <p class="eyebrow"><span></span> Open-source camera direction for Godot 4</p>
+          <h1>Put the camera<br /><em>in the story.</em></h1>
+          <p class="hero-lede">
+            Compose virtual cameras, gameplay-ready rigs, cinematic transitions,
+            and shot logic without turning your camera controller into a monolith.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#demo">Play the live demo</a>
+            <a class="button button-secondary" href="https://github.com/jethac/cameraman">View source <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="hero-meta" aria-label="Project details">
+            <span>Godot 4.4+</span>
+            <span>2D + 3D</span>
+            <span>MIT licensed</span>
+          </div>
+        </div>
+
+        <div class="hero-visual" aria-hidden="true">
+          <div class="viewport">
+            <div class="viewport-bar">
+              <div class="window-dots"><i></i><i></i><i></i></div>
+              <span>GAME VIEW / CAMERA_03</span>
+              <b>LIVE</b>
+            </div>
+            <div class="scene">
+              <div class="scene-sky"></div>
+              <div class="scene-sun"></div>
+              <div class="mountain mountain-back"></div>
+              <div class="mountain mountain-front"></div>
+              <div class="scene-ground"></div>
+              <div class="subject"><span></span></div>
+              <div class="safe-frame"></div>
+              <div class="crosshair crosshair-a"></div>
+              <div class="crosshair crosshair-b"></div>
+              <div class="focus-pill">TRACKING / PLAYER</div>
+              <div class="shot-card shot-card-a"><small>ACTIVE SHOT</small><strong>Third Person</strong><span>Priority 20</span></div>
+              <div class="shot-card shot-card-b"><small>NEXT SHOT</small><strong>Courtyard Wide</strong><span>Blend 0.8s</span></div>
+            </div>
+            <div class="timeline">
+              <span>00:12:18</span>
+              <div class="timeline-track"><i></i></div>
+              <span>00:18:00</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="proof" aria-label="Core capabilities">
+        <div><strong>4</strong><span>pipeline stages</span></div>
+        <div><strong>30+</strong><span>camera building blocks</span></div>
+        <div><strong>10</strong><span>interactive demo scenes</span></div>
+        <div><strong>1</strong><span>real output camera</span></div>
+      </section>
+
+      <section class="intro section">
+        <div class="section-kicker">Camera systems should scale with the game</div>
+        <div class="intro-grid">
+          <h2>Author shots.<br />Not edge cases.</h2>
+          <div>
+            <p class="large-copy">
+              Most camera controllers begin as a follow script and end as a web
+              of special cases. Cameraman separates shot selection from shot
+              behavior, so each rig stays understandable as your game grows.
+            </p>
+            <p>
+              Add virtual cameras wherever the scene needs a point of view. Give
+              each one only the follow, aim, collision, framing, noise, or lens
+              behavior it needs. A brain chooses the right shot and blends the
+              result into Godot's real camera.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="features section" id="features">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">A complete camera toolbox</p>
+            <h2>Small parts.<br />Big camera language.</h2>
+          </div>
+          <p>Start with a preset, then tune or replace individual behaviors as the shot demands.</p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature feature-wide feature-cyan">
+            <span class="feature-number">01</span>
+            <div class="feature-icon icon-layers"><i></i><i></i><i></i></div>
+            <h3>Virtual cameras and priority</h3>
+            <p>Place shots throughout the scene, switch them by priority, and isolate independent outputs with channel masks.</p>
+            <ul><li>Smart standby updates</li><li>2D and 3D brains</li><li>Split-screen channels</li></ul>
+          </article>
+          <article class="feature feature-amber">
+            <span class="feature-number">02</span>
+            <div class="feature-icon icon-orbit"><i></i></div>
+            <h3>Gameplay-ready rigs</h3>
+            <p>Follow, orbit, free-look, third-person, dolly, and compose targets with damping that stays responsive.</p>
+          </article>
+          <article class="feature feature-violet">
+            <span class="feature-number">03</span>
+            <div class="feature-icon icon-blend"><i></i><i></i></div>
+            <h3>Cinematic blending</h3>
+            <p>Interpolate position, orientation, lens settings, corrections, and custom blendables with shot-specific rules.</p>
+          </article>
+          <article class="feature feature-green">
+            <span class="feature-number">04</span>
+            <div class="feature-icon icon-frame"><i></i></div>
+            <h3>Constraints and framing</h3>
+            <p>Keep the camera inside 2D or 3D volumes, resolve occlusion, avoid obstacles, and frame groups of subjects.</p>
+          </article>
+          <article class="feature feature-wide feature-red">
+            <span class="feature-number">05</span>
+            <div class="feature-icon icon-pulse"><i></i><i></i><i></i></div>
+            <h3>Direction, sequencing, and impact</h3>
+            <p>Build ClearShot, state-driven, mixed, and sequenced cameras. Add impulse reactions and procedural shake when the moment lands.</p>
+            <ul><li>Weighted shot sequences</li><li>Camera managers</li><li>Impulse propagation</li></ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="pipeline section" id="pipeline">
+        <div class="pipeline-copy">
+          <p class="section-kicker">Predictable by design</p>
+          <h2>A pipeline you can reason about.</h2>
+          <p>
+            Each virtual camera evaluates the same four-stage flow. Components
+            own one job; extensions can constrain or refine the state around the
+            pipeline. The result is modular without becoming mysterious.
+          </p>
+          <a href="https://github.com/jethac/cameraman/tree/main/addons/cameraman" class="text-link">Explore the source architecture <span>↗</span></a>
+        </div>
+        <ol class="pipeline-stages">
+          <li><span>01</span><div><strong>Body</strong><p>Place and move the camera.</p></div><b>Follow · Orbit · Dolly</b></li>
+          <li><span>02</span><div><strong>Aim</strong><p>Orient and compose the subject.</p></div><b>Look · Frame · Pan/Tilt</b></li>
+          <li><span>03</span><div><strong>Noise</strong><p>Add controlled procedural motion.</p></div><b>Perlin · Impulse · Shake</b></li>
+          <li><span>04</span><div><strong>Finalize</strong><p>Constrain and polish the result.</p></div><b>Confine · Deocclude · Recompose</b></li>
+        </ol>
+      </section>
+
+      <section class="demo-section" id="demo" aria-labelledby="demo-title">
+        <div class="demo-copy section">
+          <div>
+            <p class="section-kicker">Runs in your browser</p>
+            <h2 id="demo-title">Take every rig for a spin.</h2>
+          </div>
+          <p>
+            The live Godot WebGL build includes the full demo browser: a
+            game-scale third-person level, free look, a 2D platformer, dolly,
+            ClearShot, split screen, impulse, sequencing, and state-driven shots.
+          </p>
+        </div>
+        <div class="demo-shell">
+          <div class="demo-toolbar">
+            <div><i></i><i></i><i></i><span>cameraman.jethachan.net/demo</span></div>
+            <a href="/demo/" target="_blank" rel="noopener">Open full screen <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="demo-stage" data-demo-stage>
+            <div class="demo-poster">
+              <img src="/mark.svg" width="76" height="76" alt="" />
+              <p>Interactive Godot demo</p>
+              <h3>Ready when you are.</h3>
+              <button class="button button-primary" type="button" data-load-demo>Load demo</button>
+              <small>The WebGL build is downloaded only after you start it.</small>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="opensource section">
+        <div class="opensource-card">
+          <p class="section-kicker">Open by default</p>
+          <h2>MIT licensed.<br />Built in the open.</h2>
+          <p>
+            Use Cameraman in personal, commercial, and open-source Godot
+            projects. Read the implementation, adapt the rigs, and contribute
+            improvements upstream.
+          </p>
+          <div class="opensource-actions">
+            <a class="button button-light" href="https://github.com/jethac/cameraman">Get Cameraman on GitHub</a>
+            <a class="text-link text-link-light" href="https://github.com/jethac/cameraman/blob/main/LICENSE">Read the license <span>↗</span></a>
+          </div>
+        </div>
+        <aside class="provenance">
+          <span>Clean-room provenance</span>
+          <p>
+            Inspired by Cinemachine 3.1 and independently implemented by
+            GPT-6 Astra and Devin using Devin Fusion. The agents had no access
+            to Unity's source code.
+          </p>
+          <small>Cameraman is not affiliated with or endorsed by Unity Technologies.</small>
+        </aside>
+      </section>
+    </main>
+
+    <footer>
+      <a class="brand" href="#top"><img src="/mark.svg" width="28" height="28" alt="" /><span>Cameraman</span></a>
+      <p>Procedural camera direction for Godot 4.</p>
+      <div><a href="https://github.com/jethac/cameraman">GitHub</a><a href="https://github.com/jethac/cameraman/blob/main/README.md">Documentation</a><a href="https://github.com/jethac/cameraman/blob/main/LICENSE">MIT License</a></div>
+    </footer>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>

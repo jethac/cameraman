@@ -1,0 +1,15 @@
+.godot/
+.import/
+*.import
+*.uid
+/export.cfg
+/dist/
+/.r2-upload/
+/.wrangler/
+/.wrangler-build/
+/node_modules/
+/.dev.vars
+/.playwright-mcp/
+.mono/
+*.tmp
+.DS_Store

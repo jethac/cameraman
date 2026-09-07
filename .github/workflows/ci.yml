@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Godot and Web export templates
+        run: |
+          curl -L --fail --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          curl -L --fail --output templates.tpz \
+            https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz
+          unzip -q godot.zip
+          chmod +x Godot_v4.4.1-stable_linux.x86_64
+          sudo mv Godot_v4.4.1-stable_linux.x86_64 /usr/local/bin/godot
+          unzip -q templates.tpz -d /tmp/godot-templates
+          mkdir -p "$HOME/.local/share/godot/export_templates"
+          mv /tmp/godot-templates/templates "$HOME/.local/share/godot/export_templates/4.4.1.stable"
+      - name: Import project
+        run: godot --headless --import
+      - name: Run GUT
+        run: godot --headless -s addons/gut/gut_cmdln.gd -gexit
+      - name: Verify Web export
+        run: |
+          mkdir -p dist/demo
+          godot --headless --export-release Web dist/demo/index.html
+          cp -R site/. dist/
+          node scripts/prepare_r2_assets.mjs dist .r2-upload
+      - name: Install gdtoolkit
+        run: python3 -m pip install gdtoolkit==4.5.0
+      - name: Run gdlint
+        run: gdlint addons/cameraman tests demo
