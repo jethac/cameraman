@@ -36,6 +36,8 @@ func _process(_delta: float) -> void:
 		return
 	_ensure_mode()
 	var brain: Node = CameramanCore.find_brain_for(camera)
+	if brain != null and process_priority != brain.process_priority + 1:
+		process_priority = brain.process_priority + 1
 	var visible_now: bool = show_image and _camera_is_live(camera, brain)
 	camera.set_meta("cameraman_mute_camera", mute_camera and visible_now)
 	if render_mode == RenderMode.WORLD_SPACE:
@@ -77,10 +79,15 @@ func _teardown_render_nodes() -> void:
 	_screen_container = null
 	_texture_rect = null
 	if _world_quad != null:
-		remove_child(_world_quad)
+		var quad_parent: Node = _world_quad.get_parent()
+		if quad_parent != null:
+			quad_parent.remove_child(_world_quad)
 		_world_quad.free()
-	_world_quad = null
+		_world_quad = null
 	_world_material = null
+
+func _exit_tree() -> void:
+	_teardown_render_nodes()
 
 func _create_screen_space() -> void:
 	_layer = CanvasLayer.new()
@@ -194,7 +201,14 @@ func _update_world_space(_camera: Node, brain: Node, visible_now: bool) -> void:
 	_world_quad.global_basis = Basis(Quaternion(view_axis, deg_to_rad(rotation))) * view_basis
 	var forward: Vector3 = -view_basis.z
 	var center_offset: Vector2 = (center - Vector2(0.5, 0.5)) * frame_size
+	center_offset.y = -center_offset.y
 	center_offset += _get_frustum_shift(output, distance)
+	var target_viewport: Viewport = output.get_viewport()
+	if target_viewport != null and _world_quad.get_viewport() != target_viewport:
+		var quad_parent: Node = _world_quad.get_parent()
+		if quad_parent != null:
+			quad_parent.remove_child(_world_quad)
+		target_viewport.add_child(_world_quad)
 	_world_quad.global_position = (
 		output.global_position
 		+ forward * distance
