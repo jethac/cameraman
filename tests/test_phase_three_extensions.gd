@@ -554,7 +554,7 @@ func test_storyboard_overlay_handlers_create_and_hide() -> void:
 	var storyboard: CameramanStoryboard = CameramanStoryboard.new()
 	camera.add_child(storyboard)
 	storyboard.on_camera_activated(camera, null)
-	assert_gt(storyboard.get_child_count(), 0)
+	assert_gt(storyboard.get_output_views().size(), 0)
 	storyboard.on_camera_deactivated(camera, null)
 
 func test_storyboard_world_space_fills_output_frustum() -> void:
@@ -579,9 +579,9 @@ func test_storyboard_world_space_fills_output_frustum() -> void:
 	brain.manual_update(0.1)
 	output.fov = 90.0
 	storyboard._process(0.1)
-	var quad: MeshInstance3D = storyboard.get_child(0) as MeshInstance3D
+	var quad: MeshInstance3D = storyboard.get_output_views()[0].world_quad
 	assert_not_null(quad)
-	assert_eq(storyboard.get_child_count(), 1)
+	assert_eq(storyboard.get_output_views().size(), 1)
 	var viewport_size: Vector2 = output.get_viewport().get_visible_rect().size
 	var viewport_aspect: float = viewport_size.x / viewport_size.y
 	var quad_mesh: QuadMesh = quad.mesh as QuadMesh
@@ -617,7 +617,7 @@ func test_storyboard_world_space_supports_shifted_frustum_projection() -> void:
 	output.near = 1.0
 	output.frustum_offset = Vector2(0.5, 0.0)
 	storyboard._process(0.1)
-	var quad: MeshInstance3D = storyboard.get_child(0) as MeshInstance3D
+	var quad: MeshInstance3D = storyboard.get_output_views()[0].world_quad
 	var quad_mesh: QuadMesh = quad.mesh as QuadMesh
 	assert_almost_eq(quad_mesh.size.y, 4.0, 0.01)
 	assert_almost_eq(
@@ -648,7 +648,7 @@ func test_storyboard_world_space_clamps_distance_to_clip_range() -> void:
 	output.far = 10.0
 	storyboard.world_distance = 0.1
 	storyboard._process(0.1)
-	var quad: MeshInstance3D = storyboard.get_child(0) as MeshInstance3D
+	var quad: MeshInstance3D = storyboard.get_output_views()[0].world_quad
 	var near_distance: float = -output.global_basis.z.dot(
 		quad.global_position - output.global_position
 	)
@@ -666,6 +666,8 @@ func test_storyboard_world_layers_are_isolated() -> void:
 	var second_camera: CameramanCamera = CameramanCamera.new()
 	var first: CameramanStoryboard = CameramanStoryboard.new()
 	var second: CameramanStoryboard = CameramanStoryboard.new()
+	first.render_mode = CameramanStoryboard.RenderMode.WORLD_SPACE
+	second.render_mode = CameramanStoryboard.RenderMode.WORLD_SPACE
 	first.world_render_layers = 2
 	second.world_render_layers = 4
 	first_camera.add_child(first)
@@ -673,13 +675,15 @@ func test_storyboard_world_layers_are_isolated() -> void:
 	root.add_child(first_camera)
 	root.add_child(second_camera)
 	add_child_autofree(root)
-	first._create_world_space()
-	second._create_world_space()
-	assert_eq((first.get_child(0) as MeshInstance3D).layers, 2)
-	assert_eq((second.get_child(0) as MeshInstance3D).layers, 4)
+	first._ensure_mode()
+	second._ensure_mode()
+	first._get_or_create_view(0, null)
+	second._get_or_create_view(0, null)
+	assert_eq(first.get_output_views()[0].world_quad.layers, 2)
+	assert_eq(second.get_output_views()[0].world_quad.layers, 4)
 	assert_ne(
-		(first.get_child(0) as MeshInstance3D).layers,
-		(second.get_child(0) as MeshInstance3D).layers
+		first.get_output_views()[0].world_quad.layers,
+		second.get_output_views()[0].world_quad.layers
 	)
 
 func test_storyboard_visibility_resolves_live_clear_shot_child() -> void:
@@ -711,11 +715,9 @@ func test_storyboard_visibility_resolves_live_clear_shot_child() -> void:
 	brain.manual_update(0.1)
 	selected_storyboard._process(0.1)
 	unselected_storyboard._process(0.1)
-	var selected_rect: TextureRect = (
-		selected_storyboard.get_child(0).get_child(0).get_child(0) as TextureRect
-	)
+	var selected_rect: TextureRect = selected_storyboard.get_output_views()[0].texture_rect
 	var unselected_rect: TextureRect = (
-		unselected_storyboard.get_child(0).get_child(0).get_child(0) as TextureRect
+		unselected_storyboard.get_output_views()[0].texture_rect
 	)
 	assert_true(selected_rect.visible)
 	assert_false(unselected_rect.visible)
@@ -741,9 +743,7 @@ func test_storyboard_visibility_resolves_nested_live_managers() -> void:
 	add_child_autofree(root)
 	brain.manual_update(0.1)
 	storyboard._process(0.1)
-	var texture_rect: TextureRect = (
-		storyboard.get_child(0).get_child(0).get_child(0) as TextureRect
-	)
+	var texture_rect: TextureRect = storyboard.get_output_views()[0].texture_rect
 	assert_true(texture_rect.visible)
 
 func test_find_brain_for_resolves_channel_specific_manager_leaves() -> void:
@@ -802,7 +802,7 @@ func test_storyboard_world_space_updates_after_brain_same_frame() -> void:
 	await get_tree().process_frame
 	camera.position = Vector3(7.0, 2.0, 3.0)
 	await get_tree().process_frame
-	var quad: MeshInstance3D = storyboard.get_child(0) as MeshInstance3D
+	var quad: MeshInstance3D = storyboard.get_output_views()[0].world_quad
 	var expected: Vector3 = (
 		output.global_position
 		+ output.global_basis * Vector3(0.0, 0.0, -storyboard.world_distance)
@@ -827,15 +827,15 @@ func test_storyboard_switches_render_modes() -> void:
 	add_child_autofree(root)
 	brain.manual_update(0.1)
 	storyboard._process(0.1)
-	assert_true(storyboard.get_child(0) is MeshInstance3D)
+	assert_true(storyboard.get_output_views()[0].world_quad is MeshInstance3D)
 	storyboard.render_mode = CameramanStoryboard.RenderMode.SCREEN_SPACE_OVERLAY
 	storyboard._process(0.1)
-	assert_true(storyboard.get_child(0) is CanvasLayer)
-	assert_eq((storyboard.get_child(0) as CanvasLayer).layer, 100)
+	assert_true(storyboard.get_output_views()[0].layer is CanvasLayer)
+	assert_eq(storyboard.get_output_views()[0].layer.layer, 100)
 	storyboard.render_mode = CameramanStoryboard.RenderMode.SCREEN_SPACE_CAMERA
 	storyboard._process(0.1)
-	assert_true(storyboard.get_child(0) is CanvasLayer)
-	assert_eq((storyboard.get_child(0) as CanvasLayer).layer, 1)
+	assert_true(storyboard.get_output_views()[0].layer is CanvasLayer)
+	assert_eq(storyboard.get_output_views()[0].layer.layer, 1)
 
 func test_storyboard_camera_space_binds_output_viewport() -> void:
 	var root: Node = Node.new()
@@ -859,13 +859,13 @@ func test_storyboard_camera_space_binds_output_viewport() -> void:
 	add_child_autofree(root)
 	brain.manual_update(0.1)
 	storyboard._process(0.1)
-	var layer: CanvasLayer = storyboard.get_child(0) as CanvasLayer
+	var layer: CanvasLayer = storyboard.get_output_views()[0].layer
 	var container: Control = layer.get_child(0) as Control
 	assert_eq(layer.custom_viewport, subviewport)
 	assert_almost_eq(container.size, Vector2(320.0, 240.0), Vector2.ONE * 0.001)
 	storyboard.render_mode = CameramanStoryboard.RenderMode.SCREEN_SPACE_OVERLAY
 	storyboard._process(0.1)
-	assert_null((storyboard.get_child(0) as CanvasLayer).custom_viewport)
+	assert_null(storyboard.get_output_views()[0].layer.custom_viewport)
 	root.remove_child(subviewport)
 	subviewport.free()
 
@@ -890,7 +890,7 @@ func test_storyboard_camera_space_binds_2d_output_viewport() -> void:
 	add_child_autofree(root)
 	brain.manual_update(0.1)
 	storyboard._process(0.1)
-	var layer: CanvasLayer = storyboard.get_child(0) as CanvasLayer
+	var layer: CanvasLayer = storyboard.get_output_views()[0].layer
 	assert_eq(layer.custom_viewport, subviewport)
 	root.remove_child(subviewport)
 	subviewport.free()
@@ -902,7 +902,7 @@ func test_storyboard_split_view_clips_to_view_width() -> void:
 	camera.add_child(storyboard)
 	add_child_autofree(camera)
 	storyboard._process(0.1)
-	var layer: CanvasLayer = storyboard.get_child(0) as CanvasLayer
+	var layer: CanvasLayer = storyboard.get_output_views()[0].layer
 	var clipping_control: Control = layer.get_child(0) as Control
 	var viewport_width: float = camera.get_viewport().get_visible_rect().size.x
 	assert_almost_eq(clipping_control.size.x, viewport_width * 0.5, 0.01)

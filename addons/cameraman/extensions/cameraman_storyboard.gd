@@ -1,6 +1,14 @@
 class_name CameramanStoryboard
 extends CameramanExtension
 
+class OutputView:
+	var brain: Node
+	var layer: CanvasLayer
+	var screen_container: Control
+	var texture_rect: TextureRect
+	var world_quad: MeshInstance3D
+	var world_material: StandardMaterial3D
+
 enum Aspect { BEST_FIT, CROP_IMAGE_TO_FIT, STRETCH_TO_FIT }
 enum RenderMode { SCREEN_SPACE_OVERLAY, SCREEN_SPACE_CAMERA, WORLD_SPACE }
 
@@ -20,151 +28,225 @@ enum RenderMode { SCREEN_SPACE_OVERLAY, SCREEN_SPACE_CAMERA, WORLD_SPACE }
 @export_flags_3d_render var world_render_layers: int = 1
 
 var _active_mode: int = -1
-var _layer: CanvasLayer
-var _screen_container: Control
-var _texture_rect: TextureRect
-var _world_quad: MeshInstance3D
-var _world_material: StandardMaterial3D
+var _views: Dictionary = {}
 
 func _ready() -> void:
-	var brain: Node = CameramanCore.find_brain_for(get_parent())
-	process_priority = brain.process_priority + 1 if brain != null else 1001
+	process_priority = 1001
 
 func _process(_delta: float) -> void:
 	var camera: Node = get_parent()
 	if camera == null:
 		return
 	_ensure_mode()
-	var brain: Node = CameramanCore.find_brain_for(camera)
-	if brain != null and process_priority != brain.process_priority + 1:
-		process_priority = brain.process_priority + 1
-	var visible_now: bool = show_image and _camera_is_live(camera, brain)
-	camera.set_meta("cameraman_mute_camera", mute_camera and visible_now)
-	if render_mode == RenderMode.WORLD_SPACE:
-		_update_world_space(camera, brain, visible_now)
+	var brains: Array[Node] = CameramanCore.find_brains_for(camera)
+	if brains.is_empty():
+		var fallback_brain: Node = CameramanCore.find_brain_for(camera)
+		if fallback_brain != null:
+			brains.append(fallback_brain)
+	var max_priority: int = -2147483648
+	for brain in brains:
+		if is_instance_valid(brain):
+			max_priority = maxi(max_priority, brain.process_priority)
+	process_priority = max_priority + 1 if max_priority != -2147483648 else 1001
+	var any_live: bool = false
+	if brains.is_empty():
+		any_live = CameramanCore.is_live(camera as Node3D)
 	else:
-		_update_screen_space(brain, visible_now)
+		for brain in brains:
+			if CameramanCore.is_live_in_brain(brain, camera):
+				any_live = true
+				break
+	camera.set_meta("cameraman_mute_camera", mute_camera and show_image and any_live)
+	var touched: Dictionary = {}
+	if brains.is_empty() and render_mode != RenderMode.WORLD_SPACE:
+		var fallback_view: OutputView = _get_or_create_view(0, null)
+		touched[0] = true
+		_update_screen_space(fallback_view, null, show_image and any_live)
+	for brain in brains:
+		if not is_instance_valid(brain):
+			continue
+		var key: int = _view_key(brain)
+		var view: OutputView = _get_or_create_view(key, brain)
+		touched[key] = true
+		var visible: bool = show_image and (
+			any_live if render_mode == RenderMode.SCREEN_SPACE_OVERLAY
+			else _camera_is_live(camera, brain)
+		)
+		if render_mode == RenderMode.WORLD_SPACE:
+			_update_world_space(view, brain, visible)
+		else:
+			_update_screen_space(view, brain, visible)
+	for key in _views.keys().duplicate():
+		var view: OutputView = _views[key]
+		if not touched.has(key) or (
+			view.brain != null and not is_instance_valid(view.brain)
+		):
+			_teardown_view(view)
+			_views.erase(key)
 
-func on_camera_activated(_camera: Node, _from: Object) -> void:
+func on_camera_activated(camera: Node, _from: Object) -> void:
 	_ensure_mode()
-	if _texture_rect != null:
-		_texture_rect.visible = show_image
-	if _world_quad != null:
-		_world_quad.visible = show_image
+	if _views.is_empty() and render_mode != RenderMode.WORLD_SPACE:
+		_get_or_create_view(0, CameramanCore.find_brain_for(camera))
+	for view_value in _views.values():
+		var view: OutputView = view_value
+		if view.texture_rect != null:
+			view.texture_rect.visible = show_image
+		if view.world_quad != null:
+			view.world_quad.visible = show_image
 
 func on_camera_deactivated(_camera: Node, _to: Object) -> void:
-	if _texture_rect != null:
-		_texture_rect.visible = false
-	if _world_quad != null:
-		_world_quad.visible = false
+	for view_value in _views.values():
+		var view: OutputView = view_value
+		if view.texture_rect != null:
+			view.texture_rect.visible = false
+		if view.world_quad != null:
+			view.world_quad.visible = false
+
+func get_output_views() -> Array:
+	return _views.values()
 
 func _ensure_mode() -> void:
 	if _active_mode == render_mode:
 		return
 	_teardown_render_nodes()
 	_active_mode = render_mode
+
+func _view_key(brain: Node) -> int:
+	if render_mode == RenderMode.SCREEN_SPACE_OVERLAY:
+		return 0
+	if render_mode == RenderMode.SCREEN_SPACE_CAMERA:
+		var viewport: Viewport
+		if brain.has_method("get_output_viewport"):
+			viewport = brain.call("get_output_viewport") as Viewport
+		return viewport.get_instance_id() if viewport != null else brain.get_instance_id()
+	return brain.get_instance_id()
+
+func _get_or_create_view(key: int, brain: Node) -> OutputView:
+	var view: OutputView = _views.get(key) as OutputView
+	if view != null:
+		if view.brain == null and brain != null:
+			view.brain = brain
+		return view
+	view = OutputView.new()
+	view.brain = brain
+	_views[key] = view
 	if render_mode == RenderMode.WORLD_SPACE:
-		_create_world_space()
+		_create_world_space(view)
 	else:
-		_create_screen_space()
+		_create_screen_space(view)
+	return view
 
 func _teardown_render_nodes() -> void:
-	if _layer != null:
-		var root_viewport: Viewport = get_viewport()
-		if root_viewport != null and _layer.get_viewport() != root_viewport:
-			_layer.custom_viewport = root_viewport
-		remove_child(_layer)
-		_layer.free()
-	_layer = null
-	_screen_container = null
-	_texture_rect = null
-	if _world_quad != null:
-		var quad_parent: Node = _world_quad.get_parent()
-		if quad_parent != null:
-			quad_parent.remove_child(_world_quad)
-		_world_quad.free()
-		_world_quad = null
-	_world_material = null
+	for view_value in _views.values():
+		_teardown_view(view_value as OutputView)
+	_views.clear()
 	_active_mode = -1
+
+func _teardown_view(view: OutputView) -> void:
+	if view.layer != null:
+		var root_viewport: Viewport = get_viewport()
+		if root_viewport != null and view.layer.get_viewport() != root_viewport:
+			view.layer.custom_viewport = root_viewport
+		var layer_parent: Node = view.layer.get_parent()
+		if layer_parent != null:
+			layer_parent.remove_child(view.layer)
+		view.layer.free()
+		view.layer = null
+	if view.world_quad != null:
+		var quad_parent: Node = view.world_quad.get_parent()
+		if quad_parent != null:
+			quad_parent.remove_child(view.world_quad)
+		view.world_quad.free()
+		view.world_quad = null
+	view.screen_container = null
+	view.texture_rect = null
+	view.world_material = null
 
 func _exit_tree() -> void:
 	_teardown_render_nodes()
 
-func _create_screen_space() -> void:
-	_layer = CanvasLayer.new()
-	_layer.layer = 100 if render_mode == RenderMode.SCREEN_SPACE_OVERLAY else 1
-	add_child(_layer)
-	_screen_container = Control.new()
-	_screen_container.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_screen_container.clip_contents = true
-	_layer.add_child(_screen_container)
-	_texture_rect = TextureRect.new()
-	_texture_rect.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_screen_container.add_child(_texture_rect)
+func _create_screen_space(view: OutputView) -> void:
+	view.layer = CanvasLayer.new()
+	view.layer.layer = 100 if render_mode == RenderMode.SCREEN_SPACE_OVERLAY else 1
+	add_child(view.layer)
+	view.screen_container = Control.new()
+	view.screen_container.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	view.screen_container.clip_contents = true
+	view.layer.add_child(view.screen_container)
+	view.texture_rect = TextureRect.new()
+	view.texture_rect.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	view.texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	view.screen_container.add_child(view.texture_rect)
 
-func _create_world_space() -> void:
-	_world_quad = MeshInstance3D.new()
-	_world_quad.layers = world_render_layers
+func _create_world_space(view: OutputView) -> void:
+	view.world_quad = MeshInstance3D.new()
+	view.world_quad.layers = world_render_layers
 	var quad: QuadMesh = QuadMesh.new()
-	_world_quad.mesh = quad
-	_world_material = StandardMaterial3D.new()
-	_world_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_world_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_world_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_world_material.no_depth_test = false
-	_world_quad.material_override = _world_material
-	add_child(_world_quad)
+	view.world_quad.mesh = quad
+	view.world_material = StandardMaterial3D.new()
+	view.world_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	view.world_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	view.world_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	view.world_material.no_depth_test = false
+	view.world_quad.material_override = view.world_material
+	add_child(view.world_quad)
 
-func _update_screen_space(brain: Node, visible_now: bool) -> void:
-	if _texture_rect == null or _screen_container == null:
+func _update_screen_space(view: OutputView, brain: Node, visible_now: bool) -> void:
+	if view.texture_rect == null or view.screen_container == null:
 		return
-	var output: Camera3D
-	if brain != null and brain.has_method("get_output_camera"):
-		output = brain.call("get_output_camera") as Camera3D
 	var output_viewport: Viewport
 	if brain != null and brain.has_method("get_output_viewport"):
 		output_viewport = brain.call("get_output_viewport") as Viewport
 	if render_mode == RenderMode.SCREEN_SPACE_CAMERA:
-		if output_viewport != null and output_viewport != _layer.get_viewport():
-			_layer.custom_viewport = output_viewport
+		if output_viewport != null and output_viewport != view.layer.get_viewport():
+			view.layer.custom_viewport = output_viewport
 	var viewport_size: Vector2 = (
 		_viewport_size_of(output_viewport)
 		if render_mode == RenderMode.SCREEN_SPACE_CAMERA
 		else _viewport_size_of(get_viewport())
 	)
 	var split: float = clampf(split_view, 0.0, 1.0)
-	_screen_container.position = Vector2.ZERO
-	_screen_container.size = Vector2(viewport_size.x * split, viewport_size.y)
-	_texture_rect.position = (center - Vector2(0.5, 0.5)) * viewport_size
-	_texture_rect.size = viewport_size
-	_texture_rect.pivot_offset = viewport_size * 0.5
-	_texture_rect.texture = image
-	_texture_rect.modulate = Color(1.0, 1.0, 1.0, alpha)
-	_texture_rect.rotation = deg_to_rad(rotation)
-	_texture_rect.scale = scale
+	view.screen_container.position = Vector2.ZERO
+	view.screen_container.size = Vector2(viewport_size.x * split, viewport_size.y)
+	view.texture_rect.position = (center - Vector2(0.5, 0.5)) * viewport_size
+	view.texture_rect.size = viewport_size
+	view.texture_rect.pivot_offset = viewport_size * 0.5
+	view.texture_rect.texture = image
+	view.texture_rect.modulate = Color(1.0, 1.0, 1.0, alpha)
+	view.texture_rect.rotation = deg_to_rad(rotation)
+	view.texture_rect.scale = scale
 	if sync_scale and image != null:
 		var image_size: Vector2 = image.get_size()
 		if image_size.x > 0.0 and image_size.y > 0.0:
-			_texture_rect.scale *= viewport_size / image_size
+			view.texture_rect.scale *= viewport_size / image_size
 	match aspect:
 		Aspect.CROP_IMAGE_TO_FIT:
-			_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			view.texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		Aspect.STRETCH_TO_FIT:
-			_texture_rect.stretch_mode = TextureRect.STRETCH_SCALE
+			view.texture_rect.stretch_mode = TextureRect.STRETCH_SCALE
 		_:
-			_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_texture_rect.visible = visible_now and image != null
+			view.texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	view.texture_rect.visible = visible_now and image != null
 
-func _update_world_space(_camera: Node, brain: Node, visible_now: bool) -> void:
-	if _world_quad == null:
+func _update_world_space(
+	view: OutputView,
+	brain: Node,
+	visible_now: bool
+) -> void:
+	if view.world_quad == null:
 		return
-	_world_quad.layers = world_render_layers
+	var layers: int = world_render_layers
+	if brain != null and "storyboard_render_layers" in brain:
+		var brain_layers: int = int(brain.get("storyboard_render_layers"))
+		if brain_layers > 0:
+			layers = brain_layers
+	view.world_quad.layers = layers
 	var output: Camera3D
 	if brain != null and brain.has_method("get_output_camera"):
 		output = brain.call("get_output_camera") as Camera3D
 	if output == null or image == null or not visible_now:
-		_world_quad.visible = false
+		view.world_quad.visible = false
 		return
 	var distance: float = _effective_world_distance(output)
 	var viewport_size: Vector2 = _viewport_size(output)
@@ -191,32 +273,32 @@ func _update_world_space(_camera: Node, brain: Node, visible_now: bool) -> void:
 				var visible_height: float = image_aspect / frame_aspect
 				uv_scale.y = visible_height
 				uv_offset.y = (1.0 - visible_height) * 0.5
-	_world_material.albedo_texture = image
-	_world_material.albedo_color = Color(1.0, 1.0, 1.0, alpha)
-	_world_material.uv1_scale = uv_scale
-	_world_material.uv1_offset = uv_offset
-	(_world_quad.mesh as QuadMesh).size = display_size
-	_world_quad.scale = Vector3(scale.x, scale.y, 1.0)
+	view.world_material.albedo_texture = image
+	view.world_material.albedo_color = Color(1.0, 1.0, 1.0, alpha)
+	view.world_material.uv1_scale = uv_scale
+	view.world_material.uv1_offset = uv_offset
+	(view.world_quad.mesh as QuadMesh).size = display_size
+	view.world_quad.scale = Vector3(scale.x, scale.y, 1.0)
 	var view_basis: Basis = output.global_basis.orthonormalized()
 	var view_axis: Vector3 = view_basis.z.normalized()
-	_world_quad.global_basis = Basis(Quaternion(view_axis, deg_to_rad(rotation))) * view_basis
+	view.world_quad.global_basis = Basis(Quaternion(view_axis, deg_to_rad(rotation))) * view_basis
 	var forward: Vector3 = -view_basis.z
 	var center_offset: Vector2 = (center - Vector2(0.5, 0.5)) * frame_size
 	center_offset.y = -center_offset.y
 	center_offset += _get_frustum_shift(output, distance)
 	var target_viewport: Viewport = output.get_viewport()
-	if target_viewport != null and _world_quad.get_viewport() != target_viewport:
-		var quad_parent: Node = _world_quad.get_parent()
+	if target_viewport != null and view.world_quad.get_viewport() != target_viewport:
+		var quad_parent: Node = view.world_quad.get_parent()
 		if quad_parent != null:
-			quad_parent.remove_child(_world_quad)
-		target_viewport.add_child(_world_quad)
-	_world_quad.global_position = (
+			quad_parent.remove_child(view.world_quad)
+		target_viewport.add_child(view.world_quad)
+	view.world_quad.global_position = (
 		output.global_position
 		+ forward * distance
 		+ view_basis.x * center_offset.x
 		+ view_basis.y * center_offset.y
 	)
-	_world_quad.visible = true
+	view.world_quad.visible = true
 
 func _effective_world_distance(output: Camera3D) -> float:
 	return clampf(world_distance, output.near * 1.01 + 0.001, output.far * 0.99)

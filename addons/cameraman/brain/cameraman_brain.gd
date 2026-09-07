@@ -19,6 +19,9 @@ enum BlendUpdateMethod { PROCESS, PHYSICS }
 @export var default_lens_mode: CameramanLens.Mode = CameramanLens.Mode.PERSPECTIVE
 @export var default_blend: CameramanBlendDefinition
 @export var custom_blends: CameramanBlenderSettings
+## Overrides the storyboard's world_render_layers for quads rendered to this brain's
+## output; 0 uses the storyboard value.
+@export_flags_3d_render var storyboard_render_layers: int = 0
 
 var active_virtual_camera: CameramanVirtualCameraBase
 var active_blend: CameramanBlend:
