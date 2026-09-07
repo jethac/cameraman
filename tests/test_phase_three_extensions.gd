@@ -282,6 +282,25 @@ func test_confiner_3d_hull_handles_millimetre_scale() -> void:
 	extension.post_pipeline_stage_callback(camera, CameramanCore.Stage.BODY, inside, 0.1)
 	assert_almost_eq(inside.get_final_position(), inside.raw_position, Vector3.ONE * 0.00001)
 
+func test_confiner_3d_closest_point_handles_small_and_degenerate_triangles() -> void:
+	var a := Vector3.ZERO
+	var b := Vector3(0.003, 0.0, 0.0)
+	var c := Vector3(0.001, 0.002, 0.0)
+	var point := Vector3(0.0015, 0.0005, 0.001)
+	var closest: Vector3 = CameramanConfiner3D._closest_point_on_triangle(point, a, b, c)
+	assert_almost_eq(
+		closest,
+		Vector3(0.0015, 0.0005, 0.0),
+		Vector3.ONE * 0.0000001
+	)
+	var degenerate: Vector3 = CameramanConfiner3D._closest_point_on_triangle(
+		Vector3(0.0015, 0.002, 0.0),
+		Vector3.ZERO,
+		Vector3(0.003, 0.0, 0.0),
+		Vector3(0.001, 0.0, 0.0)
+	)
+	assert_almost_eq(degenerate, Vector3(0.0015, 0.0, 0.0), Vector3.ONE * 0.0000001)
+
 func test_confiner_3d_invalidates_cache_when_shape_points_change() -> void:
 	var camera: Node3D = Node3D.new()
 	add_child_autofree(camera)
