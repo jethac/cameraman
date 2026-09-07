@@ -144,6 +144,16 @@ func _teardown_render_nodes() -> void:
 	_active_mode = -1
 
 func _teardown_view(view: OutputView) -> void:
+	_free_screen_nodes(view)
+	if view.world_quad != null and is_instance_valid(view.world_quad):
+		var quad_parent: Node = view.world_quad.get_parent()
+		if quad_parent != null:
+			quad_parent.remove_child(view.world_quad)
+		view.world_quad.free()
+	view.world_quad = null
+	view.world_material = null
+
+func _free_screen_nodes(view: OutputView) -> void:
 	if view.layer != null and is_instance_valid(view.layer):
 		var root_viewport: Viewport = get_viewport()
 		if root_viewport != null and view.layer.get_viewport() != root_viewport:
@@ -152,16 +162,9 @@ func _teardown_view(view: OutputView) -> void:
 		if layer_parent != null:
 			layer_parent.remove_child(view.layer)
 		view.layer.free()
-	if view.world_quad != null and is_instance_valid(view.world_quad):
-		var quad_parent: Node = view.world_quad.get_parent()
-		if quad_parent != null:
-			quad_parent.remove_child(view.world_quad)
-		view.world_quad.free()
 	view.layer = null
-	view.world_quad = null
 	view.screen_container = null
 	view.texture_rect = null
-	view.world_material = null
 
 func _exit_tree() -> void:
 	_teardown_render_nodes()
@@ -201,9 +204,7 @@ func _update_screen_space(view: OutputView, brain: Node, visible_now: bool) -> v
 		or view.texture_rect == null
 		or not is_instance_valid(view.texture_rect)
 	):
-		view.layer = null
-		view.screen_container = null
-		view.texture_rect = null
+		_free_screen_nodes(view)
 		_create_screen_space(view)
 	if view.texture_rect == null or not is_instance_valid(view.texture_rect):
 		return
